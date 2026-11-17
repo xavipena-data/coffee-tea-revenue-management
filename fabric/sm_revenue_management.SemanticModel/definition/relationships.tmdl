@@ -1,0 +1,54 @@
+relationship 2c9b7687-9453-64d4-5fde-d89d543a9951
+	relyOnReferentialIntegrity
+	fromColumn: fact_sales.week_key
+	toColumn: dim_date.week_key
+
+relationship 393179f6-2aec-c4fa-1840-c55c370adf22
+	relyOnReferentialIntegrity
+	fromColumn: fact_sales.customer_key
+	toColumn: dim_customer.customer_key
+
+relationship 0617f116-1631-2dba-6f15-a82d7d6a1c21
+	relyOnReferentialIntegrity
+	fromColumn: fact_sales.product_key
+	toColumn: dim_product.product_key
+
+relationship 54cf3b0b-2292-e6af-3f18-560a560f1f2f
+	fromColumn: fact_sales.promotion_id
+	toColumn: fact_promotion.promotion_id
+
+relationship 4fce06d0-6ed7-5abe-a61b-e7168a173d9d
+	relyOnReferentialIntegrity
+	fromColumn: dim_customer.channel_key
+	toColumn: dim_channel.channel_key
+
+relationship d87e4ebd-b3eb-e6af-92ea-8829633735b7
+	relyOnReferentialIntegrity
+	fromColumn: dim_date.month_start
+	toColumn: dim_month.month_start
+
+relationship c8a5c921-a2d8-789c-2029-0426b28e4bb8
+	relyOnReferentialIntegrity
+	fromColumn: fact_cost.month_start
+	toColumn: dim_month.month_start
+
+relationship 409feaa4-4fee-476a-41f2-47b22bc09b68
+	relyOnReferentialIntegrity
+	fromColumn: fact_cost.product_key
+	toColumn: dim_product.product_key
+
+relationship 0f4ff541-850d-b655-74ce-1ce87f3119e6
+	relyOnReferentialIntegrity
+	fromColumn: fact_price_list.product_key
+	toColumn: dim_product.product_key
+
+relationship 08c8973c-950c-2c60-1056-694603d03c05
+	relyOnReferentialIntegrity
+	fromColumn: fact_price_list.channel_key
+	toColumn: dim_channel.channel_key
+
+relationship 7b925b07-f566-7024-9ac8-eb47263beaee
+	relyOnReferentialIntegrity
+	fromColumn: fact_customer_terms.customer_key
+	toColumn: dim_customer.customer_key
+

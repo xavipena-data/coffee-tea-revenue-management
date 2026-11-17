@@ -1,0 +1,69 @@
+table fact_cost
+	lineageTag: 938488c3-2387-43c6-9378-188b1f331543
+	sourceLineageTag: [dbo].[fact_cost]
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: b4e9082b-ba44-4dad-8649-7b09b4de605b
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_start
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: 7621f063-92a5-493b-b731-096d5dab64b3
+		sourceLineageTag: month_start
+		summarizeBy: none
+		sourceColumn: month_start
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column raw_material_cost
+		dataType: double
+		lineageTag: 8408c9d2-4d8e-466d-98d7-7369c766bb92
+		sourceLineageTag: raw_material_cost
+		summarizeBy: sum
+		sourceColumn: raw_material_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column other_cost
+		dataType: double
+		lineageTag: be76e153-1b77-4bf9-8452-d2a16d66ea7a
+		sourceLineageTag: other_cost
+		summarizeBy: sum
+		sourceColumn: other_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column unit_cost
+		dataType: double
+		lineageTag: 49446ef6-4ee8-41f9-832a-e69641410484
+		sourceLineageTag: unit_cost
+		summarizeBy: sum
+		sourceColumn: unit_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fact_cost = entity
+		mode: directLake
+		source
+			entityName: fact_cost
+			expressionSource: 'DirectLake - lh_rm'
+

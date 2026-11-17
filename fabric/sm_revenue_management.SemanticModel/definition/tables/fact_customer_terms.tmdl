@@ -1,0 +1,88 @@
+table fact_customer_terms
+	lineageTag: bab1477a-e139-4d71-82db-bcaa9e148257
+	sourceLineageTag: [dbo].[fact_customer_terms]
+
+	column customer_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 449d15ea-3ae3-4eab-aa01-c35ae6006eb4
+		sourceLineageTag: customer_key
+		summarizeBy: none
+		sourceColumn: customer_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: d136793f-4346-40b3-a3f0-ad98c2cb6543
+		sourceLineageTag: year
+		summarizeBy: sum
+		sourceColumn: year
+
+		annotation SummarizationSetBy = Automatic
+
+	column on_invoice_pct
+		dataType: double
+		lineageTag: 167d775e-2cf8-47a0-b952-0ea9ca0a30d0
+		sourceLineageTag: on_invoice_pct
+		summarizeBy: sum
+		sourceColumn: on_invoice_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rappel_pct
+		dataType: double
+		lineageTag: 6be13782-ed61-4d23-9bde-9e3ef573b146
+		sourceLineageTag: rappel_pct
+		summarizeBy: sum
+		sourceColumn: rappel_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column early_payment_pct
+		dataType: double
+		lineageTag: 553cefa9-b196-4dec-83bc-2e7ee8e538d7
+		sourceLineageTag: early_payment_pct
+		summarizeBy: sum
+		sourceColumn: early_payment_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column marketing_pct
+		dataType: double
+		lineageTag: 60acc867-b821-47ca-960e-f01158b9009a
+		sourceLineageTag: marketing_pct
+		summarizeBy: sum
+		sourceColumn: marketing_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_terms_pct
+		dataType: double
+		lineageTag: 080f0201-7373-4e90-9f01-6aa91934e25e
+		sourceLineageTag: total_terms_pct
+		summarizeBy: sum
+		sourceColumn: total_terms_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fact_customer_terms = entity
+		mode: directLake
+		source
+			entityName: fact_customer_terms
+			expressionSource: 'DirectLake - lh_rm'
+

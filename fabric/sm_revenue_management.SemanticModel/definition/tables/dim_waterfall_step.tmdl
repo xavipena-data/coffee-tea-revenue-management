@@ -1,0 +1,37 @@
+table dim_waterfall_step
+	lineageTag: b0b3ca18-cee8-4fc8-8b74-978b2449f8c8
+	sourceLineageTag: [dbo].[dim_waterfall_step]
+
+	column step_order
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: c03eab8c-5ccd-490c-a8c6-26f382191fde
+		sourceLineageTag: step_order
+		summarizeBy: none
+		sourceColumn: step_order
+
+		changedProperty = SummarizeBy
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = User
+
+	column step
+		dataType: string
+		lineageTag: 1fa2edad-db01-4455-857e-501a2f92b53f
+		sourceLineageTag: step
+		summarizeBy: none
+		sourceColumn: step
+		sortByColumn: step_order
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_waterfall_step = entity
+		mode: directLake
+		source
+			entityName: dim_waterfall_step
+			expressionSource: 'DirectLake - lh_rm'
+

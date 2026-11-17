@@ -1,0 +1,32 @@
+table dim_channel
+	lineageTag: cbd2aa79-45c1-4ae2-aa2c-005c21643085
+	sourceLineageTag: [dbo].[dim_channel]
+
+	column channel_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 273fb4f8-7868-42f1-862e-8e4166fc215d
+		sourceLineageTag: channel_key
+		summarizeBy: none
+		sourceColumn: channel_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel
+		dataType: string
+		lineageTag: 92f9f7a4-c09b-4c8c-9b04-57d0207271e3
+		sourceLineageTag: channel
+		summarizeBy: none
+		sourceColumn: channel
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_channel = entity
+		mode: directLake
+		source
+			entityName: dim_channel
+			expressionSource: 'DirectLake - lh_rm'
+

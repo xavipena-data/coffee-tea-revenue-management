@@ -1,0 +1,411 @@
+table fact_sales
+	lineageTag: 7e039c82-252f-4dc0-9beb-9a7f8195d50a
+	sourceLineageTag: [dbo].[fact_sales]
+
+	measure 'Units Sold' = SUM(fact_sales[units])
+		formatString: #,0
+		displayFolder: 1 Volume
+		lineageTag: e68ba72f-423d-4bcb-837d-9a454e6fe4c8
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Gross Sales' = SUM(fact_sales[gross_sales])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 17b4e092-e996-4983-9993-dfbb012ed892
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Promo Discount' = SUM(fact_sales[promo_discount])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: e6eaeba4-344e-4601-9a79-d04a29f1e0df
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'On Invoice Discount' = SUM(fact_sales[on_invoice_discount])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 5b0195b4-3aa0-41f0-b45f-be5a39fdc0c6
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Rappel Amount' = SUM(fact_sales[rappel])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 47809601-c405-445d-a17f-d9a025620e55
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Early Payment Discount' = SUM(fact_sales[early_payment_discount])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 3a8191eb-7d91-4b5d-9dcd-a495cf80b9ca
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Marketing Contribution' = SUM(fact_sales[marketing_contribution])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 0955167b-4b07-4f3e-9546-eec6b58fb970
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Net Sales' = SUM(fact_sales[net_sales])
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 5cb79c14-9374-40a4-95d6-79bd2d96416a
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Total Discounts' = [Gross Sales] - [Net Sales]
+		formatString: #,0.00
+		displayFolder: 2 Gross to net
+		lineageTag: 9b35de01-b0f7-4602-87e9-2246f929e20f
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Total Discounts %' = DIVIDE([Total Discounts], [Gross Sales])
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 2 Gross to net
+		lineageTag: c2d96625-e884-4ce5-9258-55204ec95133
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Net to Gross %' = DIVIDE([Net Sales], [Gross Sales])
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 2 Gross to net
+		lineageTag: ee35a376-e425-4346-b8e2-13aee673bb4c
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Cost of Sales' = SUM(fact_sales[cogs])
+		formatString: #,0.00
+		displayFolder: 3 Cost and margin
+		lineageTag: 448c51f0-308d-4dec-a828-de424eaf88d8
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Gross Margin' = [Net Sales] - [Cost of Sales]
+		formatString: #,0.00
+		displayFolder: 3 Cost and margin
+		lineageTag: f742dab0-9c43-4aa6-bc8d-24d647280f4d
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Gross Margin %' = DIVIDE([Gross Margin], [Net Sales])
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 3 Cost and margin
+		lineageTag: 448dcb44-c892-498a-ba6b-16793b5c37e7
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Promo Support Cost' = SUM(fact_sales[promo_support_cost])
+		formatString: #,0.00
+		displayFolder: 3 Cost and margin
+		lineageTag: 3524048b-69cc-462d-a647-5ae61c97b26f
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Avg List Price' = ```
+			DIVIDE([Gross Sales], [Units Sold])	
+			```
+		formatString: #,0.00
+		displayFolder: 4 Average Prices
+		lineageTag: e91675c5-62d6-4879-8520-678b5ff2515d
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Avg Net Price' = DIVIDE([Net Sales], [Units Sold])
+		formatString: #,0.00
+		displayFolder: 4 Average prices
+		lineageTag: 23e50fa2-b6c0-4252-b469-32aff7bbe23b
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Avg Unit Cost' = DIVIDE([Cost of Sales], [Units Sold])
+		formatString: #,0.00
+		lineageTag: 81a7bd45-b5f1-46b6-9fd9-df24d0032fa3
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+	measure 'Waterfall Value' =
+			
+			SWITCH(
+			    SELECTEDVALUE(dim_waterfall_step[step_order]),
+			    1, [Gross Sales],
+			    2, -[Promo Discount],
+			    3, -[On Invoice Discount],
+			    4, -[Rappel Amount],
+			    5, -[Early Payment Discount],
+			    6, -[Marketing Contribution]
+			)
+		formatString: #,0.00
+		displayFolder: 5 Report helpers
+		lineageTag: 6f1a4655-0297-48d4-87fc-1465a3265434
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	column week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1ebcc758-5ba9-44bf-85a0-e737f851adc7
+		sourceLineageTag: week_key
+		summarizeBy: none
+		sourceColumn: week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 8df12177-1e50-4360-83e9-a620bf012dc8
+		sourceLineageTag: customer_key
+		summarizeBy: none
+		sourceColumn: customer_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 93291d3c-0a61-4a05-a05b-a679b8da2e20
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column promotion_id
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: bdec3959-6358-4720-bc50-0915bfdd6860
+		sourceLineageTag: promotion_id
+		summarizeBy: none
+		sourceColumn: promotion_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column units
+		dataType: int64
+		formatString: 0
+		lineageTag: 495cfb44-161c-418f-8e34-9d3ff7b05793
+		sourceLineageTag: units
+		summarizeBy: sum
+		sourceColumn: units
+
+		annotation SummarizationSetBy = Automatic
+
+	column list_price
+		dataType: double
+		lineageTag: 77df8483-3155-430f-92e1-ab3cdc34788e
+		sourceLineageTag: list_price
+		summarizeBy: sum
+		sourceColumn: list_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column unit_cost
+		dataType: double
+		lineageTag: eb41fcc5-a6ae-4f46-aee1-ced65f0b2cec
+		sourceLineageTag: unit_cost
+		summarizeBy: sum
+		sourceColumn: unit_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column gross_sales
+		dataType: double
+		lineageTag: 254ff75f-fd1d-4264-b8b1-11ada1813d83
+		sourceLineageTag: gross_sales
+		summarizeBy: sum
+		sourceColumn: gross_sales
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_discount
+		dataType: double
+		lineageTag: 6ef998c5-9927-4ef5-b7e0-3411feba1013
+		sourceLineageTag: promo_discount
+		summarizeBy: sum
+		sourceColumn: promo_discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column on_invoice_discount
+		dataType: double
+		lineageTag: 5f9b15f5-bee9-4642-b1f8-5b7ad16f921c
+		sourceLineageTag: on_invoice_discount
+		summarizeBy: sum
+		sourceColumn: on_invoice_discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rappel
+		dataType: double
+		lineageTag: 634f0d29-81a4-4a04-a491-e3e8be56a2d6
+		sourceLineageTag: rappel
+		summarizeBy: sum
+		sourceColumn: rappel
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column early_payment_discount
+		dataType: double
+		lineageTag: ddbffdde-4305-4185-ab43-3e14cc083691
+		sourceLineageTag: early_payment_discount
+		summarizeBy: sum
+		sourceColumn: early_payment_discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column marketing_contribution
+		dataType: double
+		lineageTag: d508b36a-326e-4235-991d-eb188aaf4bae
+		sourceLineageTag: marketing_contribution
+		summarizeBy: sum
+		sourceColumn: marketing_contribution
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column net_sales
+		dataType: double
+		lineageTag: 0bfbfd19-8fbf-437b-ab29-eeb2aabfb110
+		sourceLineageTag: net_sales
+		summarizeBy: sum
+		sourceColumn: net_sales
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column cogs
+		dataType: double
+		lineageTag: 39aee9bb-9544-4502-a1ce-7efb5df9e6c8
+		sourceLineageTag: cogs
+		summarizeBy: sum
+		sourceColumn: cogs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_support_cost
+		dataType: double
+		lineageTag: 3434ceee-e7d0-4860-abf0-97993f767579
+		sourceLineageTag: promo_support_cost
+		summarizeBy: sum
+		sourceColumn: promo_support_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fact_sales = entity
+		mode: directLake
+		source
+			entityName: fact_sales
+			expressionSource: 'DirectLake - lh_rm'
+

@@ -1,0 +1,113 @@
+table dim_date
+	lineageTag: 7fe53c80-9852-4af1-b782-47e9bdfd5a84
+	sourceLineageTag: [dbo].[dim_date]
+
+	column week_start
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5f2bc3f2-c46a-44b5-84de-923551b49415
+		sourceLineageTag: week_start
+		summarizeBy: none
+		sourceColumn: week_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 3b0ac465-896b-4197-ab67-eac03cc75d66
+		sourceLineageTag: week_key
+		summarizeBy: none
+		sourceColumn: week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column week_end
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e1a3df7b-e43e-41b8-a5d2-db13c72c2d53
+		sourceLineageTag: week_end
+		summarizeBy: none
+		sourceColumn: week_end
+
+		annotation SummarizationSetBy = Automatic
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: 1aef6d3c-881e-4e52-bcd0-2027312c59c6
+		sourceLineageTag: year
+		summarizeBy: none
+		sourceColumn: year
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 149ee1e2-17de-40a7-a82c-900e07a0ba0b
+		sourceLineageTag: quarter
+		summarizeBy: none
+		sourceColumn: quarter
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column month
+		dataType: int64
+		formatString: 0
+		lineageTag: 367d872c-3fe2-49d8-a76e-78b1f884e910
+		sourceLineageTag: month
+		summarizeBy: none
+		sourceColumn: month
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column month_name
+		dataType: string
+		lineageTag: f04983f2-1e67-4f69-8f82-5cf1d1c2a4f2
+		sourceLineageTag: month_name
+		summarizeBy: none
+		sourceColumn: month_name
+		sortByColumn: month
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column year_month
+		dataType: string
+		lineageTag: da40314c-5764-483e-87b5-c4dce619131f
+		sourceLineageTag: year_month
+		summarizeBy: none
+		sourceColumn: year_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_start
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: 3cf01171-e8de-482f-8860-c0a41432c96a
+		sourceLineageTag: month_start
+		summarizeBy: none
+		sourceColumn: month_start
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = entity
+		mode: directLake
+		source
+			entityName: dim_date
+			expressionSource: 'DirectLake - lh_rm'
+

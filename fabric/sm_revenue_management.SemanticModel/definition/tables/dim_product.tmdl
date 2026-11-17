@@ -1,0 +1,81 @@
+table dim_product
+	lineageTag: 83cedb07-52f9-4cca-a1c7-fbc5ea1666d3
+	sourceLineageTag: [dbo].[dim_product]
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: aed72978-ae72-4236-8043-8d4930cece9f
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column sku_code
+		dataType: string
+		lineageTag: 75c6c5f8-d471-4f01-b6a2-b5379c192445
+		sourceLineageTag: sku_code
+		summarizeBy: none
+		sourceColumn: sku_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name
+		dataType: string
+		lineageTag: a5c14179-8e66-426d-afc1-be8dba3edded
+		sourceLineageTag: product_name
+		summarizeBy: none
+		sourceColumn: product_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column category
+		dataType: string
+		lineageTag: eeda55a9-41c5-4468-ab7a-b514df506d5f
+		sourceLineageTag: category
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = Automatic
+
+	column brand
+		dataType: string
+		lineageTag: 6694d3eb-2e46-48a4-8733-91c2db34bb09
+		sourceLineageTag: brand
+		summarizeBy: none
+		sourceColumn: brand
+
+		annotation SummarizationSetBy = Automatic
+
+	column ownership
+		dataType: string
+		lineageTag: 5fc23160-fe4e-4a7d-828c-8e4232b40719
+		sourceLineageTag: ownership
+		summarizeBy: none
+		sourceColumn: ownership
+
+		annotation SummarizationSetBy = Automatic
+
+	column kg_per_unit
+		dataType: double
+		lineageTag: 5690a95b-ba24-4101-849b-8955fe73f778
+		sourceLineageTag: kg_per_unit
+		summarizeBy: none
+		sourceColumn: kg_per_unit
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition dim_product = entity
+		mode: directLake
+		source
+			entityName: dim_product
+			expressionSource: 'DirectLake - lh_rm'
+

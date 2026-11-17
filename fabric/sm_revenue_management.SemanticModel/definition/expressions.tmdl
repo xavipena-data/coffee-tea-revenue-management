@@ -1,0 +1,11 @@
+expression 'DirectLake - lh_rm' =
+		let
+		    Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/3089dcb5-019c-432a-b624-0c1396348d46/21b76e1d-eb41-4713-ac68-03b2bf7901ca", [HierarchicalNavigation=true])
+		in
+		    Source
+	lineageTag: 6dc21d8c-1a07-4601-9316-689c73e921af
+
+	annotation PBI_IncludeFutureArtifacts = False
+
+	annotation PBI_RemovedChildren = [{"remoteItemId":{"analysisServicesObject":{"sourceName":null,"sourceLineageTag":"[dbo].[sim_param_seasonality]"}},"objectType":"Table"},{"remoteItemId":{"analysisServicesObject":{"sourceName":null,"sourceLineageTag":"[dbo].[sim_param_elasticity]"}},"objectType":"Table"},{"remoteItemId":{"analysisServicesObject":{"sourceName":null,"sourceLineageTag":"[dbo].[sim_customer_assortment]"}},"objectType":"Table"},{"remoteItemId":{"analysisServicesObject":{"sourceName":null,"sourceLineageTag":"[dbo].[slv_pink_sheet_monthly]"}},"objectType":"Table"},{"remoteItemId":{"analysisServicesObject":{"sourceName":null,"sourceLineageTag":"[dbo].[slv_ecb_usd_eur]"}},"objectType":"Table"}]
+

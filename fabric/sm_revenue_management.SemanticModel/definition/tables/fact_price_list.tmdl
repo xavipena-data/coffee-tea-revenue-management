@@ -1,0 +1,125 @@
+table fact_price_list
+	lineageTag: 367e7a0b-f4f7-4f0e-83af-20b82b6cdef1
+	sourceLineageTag: [dbo].[fact_price_list]
+
+	column price_version
+		dataType: int64
+		formatString: 0
+		lineageTag: fb11f605-3cb2-44cc-b037-f62d67a70ff2
+		sourceLineageTag: price_version
+		summarizeBy: sum
+		sourceColumn: price_version
+
+		annotation SummarizationSetBy = Automatic
+
+	column effective_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: d32688d7-9f3c-48de-afe6-dec3fcde89c9
+		sourceLineageTag: effective_week_key
+		summarizeBy: sum
+		sourceColumn: effective_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column last_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9f35eaf5-af4f-4967-9314-37f05003ad42
+		sourceLineageTag: last_week_key
+		summarizeBy: sum
+		sourceColumn: last_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: f53d860f-4065-4bbc-8486-ab9ee5969704
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: b339d089-9491-43dd-8631-285abbbab1f5
+		sourceLineageTag: channel_key
+		summarizeBy: none
+		sourceColumn: channel_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column tier
+		dataType: string
+		lineageTag: eb2f4f3d-4395-4302-a978-070a6382e038
+		sourceLineageTag: tier
+		summarizeBy: none
+		sourceColumn: tier
+
+		annotation SummarizationSetBy = Automatic
+
+	column base_price
+		dataType: double
+		lineageTag: 1ca1182b-297a-41bb-98b7-60f7f247f817
+		sourceLineageTag: base_price
+		summarizeBy: sum
+		sourceColumn: base_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column channel_index
+		dataType: double
+		lineageTag: e3faaa60-7422-49ab-89f0-764b97b5fdc6
+		sourceLineageTag: channel_index
+		summarizeBy: sum
+		sourceColumn: channel_index
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tier_index
+		dataType: double
+		lineageTag: 87e4040f-1b0b-4b52-bf7d-aed0e9e9e3b5
+		sourceLineageTag: tier_index
+		summarizeBy: sum
+		sourceColumn: tier_index
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column list_price
+		dataType: double
+		lineageTag: 373b12b0-0706-4572-adc3-bf5f7f9f7056
+		sourceLineageTag: list_price
+		summarizeBy: sum
+		sourceColumn: list_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fact_price_list = entity
+		mode: directLake
+		source
+			entityName: fact_price_list
+			expressionSource: 'DirectLake - lh_rm'
+

@@ -1,0 +1,116 @@
+table dim_customer
+	lineageTag: 79cdf259-09bf-4640-a6f6-46f7b43cb51f
+	sourceLineageTag: [dbo].[dim_customer]
+
+	column customer_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 2a8892aa-661f-478f-8df9-75dde0fa215b
+		sourceLineageTag: customer_key
+		summarizeBy: none
+		sourceColumn: customer_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_name
+		dataType: string
+		lineageTag: eadfa76e-2ee4-4be4-903a-80a89819add5
+		sourceLineageTag: customer_name
+		summarizeBy: none
+		sourceColumn: customer_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 81606dde-7408-4310-b5ac-e9be621ece58
+		sourceLineageTag: channel_key
+		summarizeBy: none
+		sourceColumn: channel_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_type
+		dataType: string
+		lineageTag: 9ee8a68f-bf35-4284-86b3-c6046d134d2f
+		sourceLineageTag: customer_type
+		summarizeBy: none
+		sourceColumn: customer_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column tier
+		dataType: string
+		lineageTag: a5898723-2ad5-4cc7-a085-847e574ebbca
+		sourceLineageTag: tier
+		summarizeBy: none
+		sourceColumn: tier
+
+		annotation SummarizationSetBy = Automatic
+
+	column province
+		dataType: string
+		lineageTag: 570efddf-32e5-428e-afe8-d1f01bbcaf29
+		sourceLineageTag: province
+		summarizeBy: none
+		sourceColumn: province
+
+		annotation SummarizationSetBy = Automatic
+
+	column sales_rep
+		dataType: string
+		lineageTag: fc426722-dfb7-4456-95cd-dfe9ec8c3732
+		sourceLineageTag: sales_rep
+		summarizeBy: none
+		sourceColumn: sales_rep
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9a026f2b-9c37-4694-8bc0-8318bb8bd5f0
+		sourceLineageTag: start_week_key
+		summarizeBy: sum
+		sourceColumn: start_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1d80029f-3d99-48b8-b3c3-6592cc2177d0
+		sourceLineageTag: end_week_key
+		summarizeBy: sum
+		sourceColumn: end_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column lifecycle
+		dataType: string
+		lineageTag: d3cb4427-fffe-4577-86a2-f10e64753530
+		sourceLineageTag: lifecycle
+		summarizeBy: none
+		sourceColumn: lifecycle
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_customer = entity
+		mode: directLake
+		source
+			entityName: dim_customer
+			expressionSource: 'DirectLake - lh_rm'
+

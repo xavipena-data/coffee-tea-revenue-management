@@ -1,0 +1,114 @@
+table fact_promotion
+	lineageTag: 80639372-9ff1-480a-9db5-b428c4c99b7e
+	sourceLineageTag: [dbo].[fact_promotion]
+
+	column promotion_id
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ca889d22-6ac0-4479-8ab1-f847934519c5
+		sourceLineageTag: promotion_id
+		summarizeBy: none
+		sourceColumn: promotion_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column campaign
+		dataType: string
+		lineageTag: c985384f-b8e4-4ef5-b03b-6f0737257ef0
+		sourceLineageTag: campaign
+		summarizeBy: none
+		sourceColumn: campaign
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9f3f0c04-7a5c-4f62-88dc-6cab3b54828f
+		sourceLineageTag: channel_key
+		summarizeBy: none
+		sourceColumn: channel_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 2aadf791-86f7-4364-b838-824fc17d8b12
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column mechanic
+		dataType: string
+		lineageTag: 3095d811-09e9-488e-b488-3bdeb206fea8
+		sourceLineageTag: mechanic
+		summarizeBy: none
+		sourceColumn: mechanic
+
+		annotation SummarizationSetBy = Automatic
+
+	column discount_pct
+		dataType: double
+		lineageTag: b4cd20ff-619b-48d7-be39-898905f7f658
+		sourceLineageTag: discount_pct
+		summarizeBy: none
+		sourceColumn: discount_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column start_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 836c63ce-4065-4fd9-814b-e58cf0b6b844
+		sourceLineageTag: start_week_key
+		summarizeBy: none
+		sourceColumn: start_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 05b7c24f-5553-47ca-aee7-45ee6d7a359e
+		sourceLineageTag: end_week_key
+		summarizeBy: none
+		sourceColumn: end_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column duration_weeks
+		dataType: int64
+		formatString: 0
+		lineageTag: 2c9c6b75-5fa2-4662-842c-3486ae069f5d
+		sourceLineageTag: duration_weeks
+		summarizeBy: none
+		sourceColumn: duration_weeks
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_promotion = entity
+		mode: directLake
+		source
+			entityName: fact_promotion
+			expressionSource: 'DirectLake - lh_rm'
+

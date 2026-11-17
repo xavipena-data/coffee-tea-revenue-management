@@ -1388,3 +1388,134 @@ out.round(2)
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# ---------------------------------------------------------------
+# Prepare the monthly time axis for fact_cost.
+# 1) Add month_start (first day of the month of the week's Monday) to dim_date.
+# 2) Build dim_month: one row per month (36 rows), taking the month attributes
+#    from dim_date, so both tables always agree.
+# dim_date is overwritten with the extra column; its other columns stay as they
+# were. Dates are saved as pure dates. The last lines check that every month of
+# fact_cost exists in dim_month.
+# ---------------------------------------------------------------
+import pandas as pd
+
+dd = spark.table("dim_date").toPandas()
+dd["week_start"] = pd.to_datetime(dd["week_start"])
+dd["week_end"] = pd.to_datetime(dd["week_end"])
+dd["month_start"] = dd["week_start"].dt.to_period("M").dt.to_timestamp()
+
+dim_month = dd.groupby("month_start", as_index=False).agg(
+    year=("year", "first"), quarter=("quarter", "first"), month=("month", "first"),
+    month_name=("month_name", "first"), year_month=("year_month", "first"),
+)
+
+for col in ["week_start", "week_end", "month_start"]:
+    dd[col] = dd[col].dt.date
+dim_month["month_start"] = dim_month["month_start"].dt.date
+
+for name, pdf in {"dim_date": dd, "dim_month": dim_month}.items():
+    (spark.createDataFrame(pdf)
+          .write.mode("overwrite")
+          .option("overwriteSchema", "true")
+          .format("delta")
+          .saveAsTable(name))
+
+print("dim_date", spark.table("dim_date").count(), "| dim_month", spark.table("dim_month").count())
+print("dim_date columns:", spark.table("dim_date").columns)
+print("fact_cost months missing in dim_month:", spark.sql(
+    "SELECT COUNT(*) FROM fact_cost f LEFT ANTI JOIN dim_month m ON f.month_start = m.month_start").first()[0])
+spark.table("dim_month").orderBy("month_start").show(3)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# ---------------------------------------------------------------
+# Helper table for the gross-to-net waterfall on report page 1.
+# The waterfall needs a column of categories (the steps), but our steps are
+# measures, so we list them here: one row per step, with its order.
+# The last bar (net sales) is added by the chart itself as a total, so it is
+# not listed. This table has no relationship in the semantic model.
+# ---------------------------------------------------------------
+import pandas as pd
+
+steps = pd.DataFrame({
+    "step_order": [1, 2, 3, 4, 5, 6],
+    "step": ["Gross sales", "Promotions", "On-invoice discount",
+             "Volume rebate (rappel)", "Early-payment discount", "Marketing contribution"],
+})
+
+(spark.createDataFrame(steps)
+      .write.mode("overwrite")
+      .option("overwriteSchema", "true")
+      .format("delta")
+      .saveAsTable("dim_waterfall_step"))
+
+spark.table("dim_waterfall_step").orderBy("step_order").show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 11c: read-only diagnostic - each discount layer as % of gross sales by month, to explain the Dec 2024 - Jan 2025 dip in net/gross
+df = spark.sql("""
+    SELECT d.month_start,
+           ROUND(100 * SUM(f.promo_discount)         / SUM(f.gross_sales), 2) AS promo_pct,
+           ROUND(100 * SUM(f.on_invoice_discount)    / SUM(f.gross_sales), 2) AS on_invoice_pct,
+           ROUND(100 * SUM(f.rappel)                 / SUM(f.gross_sales), 2) AS rappel_pct,
+           ROUND(100 * SUM(f.early_payment_discount) / SUM(f.gross_sales), 2) AS early_pct,
+           ROUND(100 * SUM(f.marketing_contribution) / SUM(f.gross_sales), 2) AS marketing_pct,
+           ROUND(100 * SUM(f.net_sales)              / SUM(f.gross_sales), 2) AS net_to_gross_pct
+    FROM fact_sales f
+    JOIN dim_date d ON f.week_key = d.week_key
+    GROUP BY d.month_start
+    ORDER BY d.month_start
+""")
+df.show(40, truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 11d: read-only diagnostic - promotions with the largest discount in Dec 2024 and Jan 2025, to explain the promo spike
+df = spark.sql("""
+    SELECT p.promotion_id, p.campaign, p.channel_key, p.product_key, p.mechanic, p.discount_pct,
+           p.start_week_key, p.end_week_key,
+           SUM(f.units)                        AS units,
+           ROUND(SUM(f.gross_sales), 2)        AS gross_sales,
+           ROUND(SUM(f.promo_discount), 2)     AS promo_discount
+    FROM fact_sales f
+    JOIN dim_date d       ON f.week_key = d.week_key
+    JOIN fact_promotion p ON f.promotion_id = p.promotion_id
+    WHERE d.month_start BETWEEN '2024-12-01' AND '2025-01-01'
+    GROUP BY p.promotion_id, p.campaign, p.channel_key, p.product_key, p.mechanic,
+             p.discount_pct, p.start_week_key, p.end_week_key
+    ORDER BY promo_discount DESC
+    LIMIT 15
+""")
+df.show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
