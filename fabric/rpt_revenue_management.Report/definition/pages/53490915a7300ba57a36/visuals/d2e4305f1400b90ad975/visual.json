@@ -103,26 +103,18 @@
             }
           }
         }
+      ],
+      "general": [
+        {
+          "properties": {}
+        }
       ]
     },
+    "syncGroup": {
+      "groupName": "ownership",
+      "fieldChanges": true,
+      "filterChanges": true
+    },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "d464e3e4854521c13d0c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_product"
-              }
-            },
-            "Property": "ownership"
-          }
-        },
-        "type": "Categorical"
-      }
-    ]
   }
 }

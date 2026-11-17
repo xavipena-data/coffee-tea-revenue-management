@@ -69,6 +69,23 @@ table dim_month
 
 		annotation SummarizationSetBy = Automatic
 
+	column usd_per_eur
+		dataType: double
+		isHidden
+		formatString: 0.0000
+		lineageTag: d78c9e2b-e0af-47e3-b843-f08bb8253b00
+		sourceLineageTag: usd_per_eur
+		summarizeBy: none
+		sourceColumn: usd_per_eur
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = User
+
 	partition dim_month = entity
 		mode: directLake
 		source

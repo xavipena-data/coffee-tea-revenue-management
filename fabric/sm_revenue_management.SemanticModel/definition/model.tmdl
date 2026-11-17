@@ -23,4 +23,5 @@ ref table fact_price_list
 ref table fact_promotion
 ref table fact_sales
 ref table dim_waterfall_step
+ref table dim_pvm_step
 

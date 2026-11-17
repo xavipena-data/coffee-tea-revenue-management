@@ -220,6 +220,176 @@ table fact_sales
 
 		changedProperty = FormatString
 
+	measure 'Raw Cost of Sales' = SUM(fact_sales[raw_cogs])
+		formatString: #,0.00
+		displayFolder: 3 Cost and margin
+		lineageTag: aae23356-31a6-4093-a553-21b6e88a5701
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Other Cost of Sales' = [Cost of Sales] - [Raw Cost of Sales]
+		formatString: #,0.00
+		displayFolder: 3 Cost and margin
+		lineageTag: ae527232-04a7-43e8-8f80-350505e5c2f8
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure Measure
+		lineageTag: 177efdf2-b9dc-4025-a9d9-7359a21e6145
+
+		annotation 43dbc3e8-3a1c-4b6f-9923-b49ff7d6691c = True
+
+	measure 'PVM Value' =
+			
+			VAR CurYear   = SELECTEDVALUE ( dim_date[year] )
+			VAR PriorYear = CurYear - 1
+			/* All product x channel combinations that sold in either year (the year slicer is overridden here) */
+			VAR Combos =
+			    CALCULATETABLE (
+			        SUMMARIZE ( fact_sales, dim_product[product_key], dim_channel[channel_key] ),
+			        dim_date[year] IN { CurYear, PriorYear }
+			    )
+			/* Per combination: units (u), gross (g), net (n), cost (c) and raw cost (r) for current (C) and prior (P) year */
+			VAR ComboData =
+			    ADDCOLUMNS (
+			        Combos,
+			        "uC", CALCULATE ( [Units Sold],        dim_date[year] = CurYear ),
+			        "uP", CALCULATE ( [Units Sold],        dim_date[year] = PriorYear ),
+			        "gC", CALCULATE ( [Gross Sales],       dim_date[year] = CurYear ),
+			        "gP", CALCULATE ( [Gross Sales],       dim_date[year] = PriorYear ),
+			        "nC", CALCULATE ( [Net Sales],         dim_date[year] = CurYear ),
+			        "nP", CALCULATE ( [Net Sales],         dim_date[year] = PriorYear ),
+			        "cC", CALCULATE ( [Cost of Sales],     dim_date[year] = CurYear ),
+			        "cP", CALCULATE ( [Cost of Sales],     dim_date[year] = PriorYear ),
+			        "rC", CALCULATE ( [Raw Cost of Sales], dim_date[year] = CurYear ),
+			        "rP", CALCULATE ( [Raw Cost of Sales], dim_date[year] = PriorYear )
+			    )
+			VAR UnitsCur     = SUMX ( ComboData, [uC] )
+			VAR UnitsPrior   = SUMX ( ComboData, [uP] )
+			VAR PriorMargin  = SUMX ( ComboData, [nP] - [cP] )
+			/* Volume: change in total units at the prior-year average margin per unit */
+			VAR Volume       = DIVIDE ( UnitsCur - UnitsPrior, UnitsPrior ) * PriorMargin
+			/* Volume + Mix per combination: change in units x prior unit margin (new ones use their current unit margin) */
+			VAR VolumeAndMix =
+			    SUMX (
+			        ComboData,
+			        VAR mP = IF ( [uP] > 0, DIVIDE ( [nP] - [cP], [uP] ), DIVIDE ( [nC] - [cC], [uC] ) )
+			        RETURN ( [uC] - [uP] ) * mP
+			    )
+			VAR Mix          = VolumeAndMix - Volume
+			/* Price and cost effects: only combinations that sold in both years, valued at current-year units */
+			VAR ListPrice    = SUMX ( ComboData, IF ( [uC] > 0 && [uP] > 0, [gC] - [uC] * DIVIDE ( [gP], [uP] ), 0 ) )
+			VAR NetPrice     = SUMX ( ComboData, IF ( [uC] > 0 && [uP] > 0, [nC] - [uC] * DIVIDE ( [nP], [uP] ), 0 ) )
+			VAR Discounts    = NetPrice - ListPrice
+			VAR RawEffect    = - SUMX ( ComboData, IF ( [uC] > 0 && [uP] > 0, [rC] - [uC] * DIVIDE ( [rP], [uP] ), 0 ) )
+			VAR CostEffect   = - SUMX ( ComboData, IF ( [uC] > 0 && [uP] > 0, [cC] - [uC] * DIVIDE ( [cP], [uP] ), 0 ) )
+			VAR OtherCost    = CostEffect - RawEffect
+			/* FX: current raw cost valued at the prior-year average USD per EUR rate vs the actual one */
+			VAR RawCurMatched = SUMX ( ComboData, IF ( [uC] > 0 && [uP] > 0, [rC], 0 ) )
+			VAR RateCur      = CALCULATE ( AVERAGE ( dim_month[usd_per_eur] ), dim_month[year] = CurYear )
+			VAR RatePrior    = CALCULATE ( AVERAGE ( dim_month[usd_per_eur] ), dim_month[year] = PriorYear )
+			VAR FX           = RawCurMatched * ( DIVIDE ( RateCur, RatePrior ) - 1 )
+			VAR RawNoFX      = RawEffect - FX
+			RETURN
+			    IF (
+			        ISBLANK ( CurYear ) || UnitsPrior = 0,
+			        BLANK (),
+			        SWITCH (
+			            SELECTEDVALUE ( dim_pvm_step[step_order] ),
+			            1, PriorMargin,
+			            2, Volume,
+			            3, Mix,
+			            4, ListPrice,
+			            5, Discounts,
+			            6, RawNoFX,
+			            7, FX,
+			            8, OtherCost
+			        )
+			    )
+		formatString: #,0.00
+		displayFolder: 6 PVM bridge
+		lineageTag: b6d83683-9cce-4ae2-a4b9-1d84c1603cf8
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'PVM Closing Check' =
+			
+			VAR CurYear = SELECTEDVALUE ( dim_date[year] )
+			VAR PriorUnits = CALCULATE ( [Units Sold], dim_date[year] = CurYear - 1 )
+			RETURN
+			    IF (
+			        ISBLANK ( CurYear ) || PriorUnits = 0,
+			        BLANK (),
+			        ROUND (
+			            SUMX ( VALUES ( dim_pvm_step[step_order] ), [PVM Value] )
+			                - CALCULATE ( [Gross Margin], dim_date[year] = CurYear ),
+			            2
+			        )
+			    )
+		formatString: #,0.00
+		displayFolder: 6 PVM bridge
+		lineageTag: 6f1b3973-9946-4478-b457-cd7289419c5b
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'PVM Prior Margin' =
+			
+			VAR PriorYear = SELECTEDVALUE ( dim_date[year] ) - 1
+			VAR PriorUnits = CALCULATE ( [Units Sold], dim_date[year] = PriorYear )
+			RETURN
+			    IF ( PriorUnits = 0, BLANK (), CALCULATE ( [Gross Margin], dim_date[year] = PriorYear ) )
+		formatString: #,0.00
+		displayFolder: 6 PVM bridge
+		lineageTag: ed91d202-1914-4484-a62a-cb8faf1a3459
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'PVM Margin Change' =
+			
+			IF ( ISBLANK ( [PVM Prior Margin] ), BLANK (), [Gross Margin] - [PVM Prior Margin] )
+		formatString: #,0.00
+		displayFolder: 6 PVM bridge
+		lineageTag: c9f472f9-918b-4f97-a1c7-9401cd9ac6f5
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'PVM Margin Change %' =
+			
+			DIVIDE ( [PVM Margin Change], [PVM Prior Margin] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 6 PVM bridge
+		lineageTag: fbe34872-76ee-4d3d-a417-e2825336f5b8
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
 	column week_key
 		dataType: int64
 		isHidden
@@ -402,6 +572,23 @@ table fact_sales
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column raw_cogs
+		dataType: double
+		isHidden
+		formatString: #,0.00
+		lineageTag: 92ddac6c-acb8-4551-a7a9-bf9198983389
+		sourceLineageTag: raw_cogs
+		summarizeBy: none
+		sourceColumn: raw_cogs
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = User
 
 	partition fact_sales = entity
 		mode: directLake

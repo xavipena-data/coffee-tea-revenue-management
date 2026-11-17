@@ -1519,3 +1519,106 @@ df.show(truncate=False)
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# 15a: read-only check - schemas and sample rows of the tables needed for the FX and raw-cost columns
+for t in ["slv_ecb_usd_eur", "fact_cost", "dim_month"]:
+    print("=====", t, "=====")
+    df = spark.table(t)
+    df.printSchema()
+    df.show(3, truncate=False)
+    print("rows:", df.count())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 15b: add the monthly average USD per EUR rate (ECB) to dim_month; it feeds the FX effect of the margin bridge
+import pandas as pd
+
+dim_month = spark.table("dim_month").toPandas()
+ecb = spark.table("slv_ecb_usd_eur").toPandas()
+
+# Drop the column first so the cell can be re-run safely, then left-join on the month
+dim_month = dim_month.drop(columns=["usd_per_eur"], errors="ignore").merge(ecb, on="month_start", how="left")
+print("months without rate:", int(dim_month["usd_per_eur"].isna().sum()))
+
+(spark.createDataFrame(dim_month)
+      .write.format("delta").mode("overwrite")
+      .option("overwriteSchema", "true")
+      .saveAsTable("dim_month"))
+
+spark.table("dim_month").orderBy("month_start").show(36, truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 15c: add raw_cogs (units x raw material cost per unit of that product and month) to fact_sales
+from pyspark.sql import functions as F
+
+sales = spark.table("fact_sales").drop("raw_cogs")          # drop first so the cell can be re-run
+week_month = spark.table("dim_date").select("week_key", "month_start")
+raw_cost = spark.table("fact_cost").select("product_key", "month_start", "raw_material_cost")
+
+new_sales = (sales.join(week_month, "week_key", "left")
+                  .join(raw_cost, ["product_key", "month_start"], "left")
+                  .withColumn("raw_cogs", F.round(F.col("units") * F.col("raw_material_cost"), 4))
+                  .select(*sales.columns, "raw_cogs"))      # keep the original column order, new column last
+
+new_sales = new_sales.cache()
+n_before, n_after = sales.count(), new_sales.count()
+print("rows before:", n_before, "| rows after:", n_after)
+print("rows without raw_cogs:", new_sales.filter(F.col("raw_cogs").isNull()).count())
+
+new_sales.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("fact_sales")
+
+chk = spark.table("fact_sales").agg(
+    F.round(F.sum("gross_sales"), 2).alias("gross_sales"),
+    F.round(F.sum("cogs"), 2).alias("cogs"),
+    F.round(F.sum("raw_cogs"), 2).alias("raw_cogs"))
+chk.show()
+chk.select((100 * F.col("raw_cogs") / F.col("cogs")).alias("raw_share_pct")).show()
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 15e: helper table with one row per step of the gross margin bridge (prior year to current year); no relationships, ordered by step_order
+import pandas as pd
+
+steps = pd.DataFrame({
+    "step_order": [1, 2, 3, 4, 5, 6, 7, 8],
+    "step": ["Prior-year margin", "Volume", "Mix", "List price", "Discounts & terms",
+             "Raw material cost", "FX", "Other cost"]
+})
+
+(spark.createDataFrame(steps)
+      .write.format("delta").mode("overwrite")
+      .option("overwriteSchema", "true")
+      .saveAsTable("dim_pvm_step"))
+
+spark.table("dim_pvm_step").orderBy("step_order").show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
