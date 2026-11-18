@@ -1,0 +1,49 @@
+table dim_price_scenario
+	lineageTag: 5341a8f6-3e04-4d1d-a597-79d1f2b8fa62
+	sourceLineageTag: [dbo].[dim_price_scenario]
+
+	column scenario_order
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9e9a88ce-4630-42a0-9b06-95d8416c57d5
+		sourceLineageTag: scenario_order
+		summarizeBy: sum
+		sourceColumn: scenario_order
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column scenario_pct
+		dataType: double
+		formatString: 0%;-0%;0%
+		lineageTag: 2973876f-2694-4768-819e-dfea7658e622
+		sourceLineageTag: scenario_pct
+		summarizeBy: none
+		sourceColumn: scenario_pct
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column scenario_label
+		dataType: string
+		lineageTag: c55f5695-585e-468c-aefc-299a8adee7aa
+		sourceLineageTag: scenario_label
+		summarizeBy: none
+		sourceColumn: scenario_label
+		sortByColumn: scenario_order
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_price_scenario = entity
+		mode: directLake
+		source
+			entityName: dim_price_scenario
+			expressionSource: 'DirectLake - lh_rm'
+

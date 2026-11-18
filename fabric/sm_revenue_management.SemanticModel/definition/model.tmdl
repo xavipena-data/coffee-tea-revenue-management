@@ -26,4 +26,7 @@ ref table dim_waterfall_step
 ref table dim_pvm_step
 ref table fact_promo_performance
 ref table dim_promo_step
+ref table dim_elasticity
+ref table dim_price_step
+ref table dim_price_scenario
 

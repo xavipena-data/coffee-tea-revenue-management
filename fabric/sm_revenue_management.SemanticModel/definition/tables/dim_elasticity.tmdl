@@ -1,0 +1,41 @@
+table dim_elasticity
+	lineageTag: c248a009-e3bf-4877-8f94-d3c08c1c0101
+	sourceLineageTag: [dbo].[dim_elasticity]
+
+	column product_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 7c8751a2-7aac-4a0a-aa92-eecbf4c27265
+		sourceLineageTag: product_key
+		summarizeBy: sum
+		sourceColumn: product_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 7fed354d-a352-405e-8324-d634ad869cd6
+		sourceLineageTag: channel_key
+		summarizeBy: sum
+		sourceColumn: channel_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column elasticity
+		dataType: double
+		lineageTag: d8605bf1-ad4a-490f-8d70-13b46400c1b4
+		sourceLineageTag: elasticity
+		summarizeBy: sum
+		sourceColumn: elasticity
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition dim_elasticity = entity
+		mode: directLake
+		source
+			entityName: dim_elasticity
+			expressionSource: 'DirectLake - lh_rm'
+

@@ -497,6 +497,101 @@ table fact_sales
 
 		changedProperty = DisplayFolder
 
+	measure 'Sim Margin Change %' =
+			
+			VAR x = SELECTEDVALUE(dim_price_step[price_change_pct])
+			VAR Combos = SUMMARIZE(fact_sales, dim_product[product_key], dim_channel[channel_key])
+			VAR SimMargin =
+			    SUMX(
+			        Combos,
+			        VAR e = LOOKUPVALUE(dim_elasticity[elasticity], dim_elasticity[product_key], dim_product[product_key], dim_elasticity[channel_key], dim_channel[channel_key])
+			        VAR f = POWER(1 + x, e)
+			        RETURN [Net Sales] * (1 + x) * f - [Cost of Sales] * f
+			    )
+			RETURN IF(ISBLANK(x), BLANK(), DIVIDE(SimMargin, [Gross Margin]) - 1)
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 8 Price simulator
+		lineageTag: 2f6fc4e2-0c60-45ce-81e9-02bf66ce1f86
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Sim Units Change %' =
+			
+			VAR x = SELECTEDVALUE(dim_price_step[price_change_pct])
+			VAR Combos = SUMMARIZE(fact_sales, dim_product[product_key], dim_channel[channel_key])
+			VAR SimUnits =
+			    SUMX(
+			        Combos,
+			        VAR e = LOOKUPVALUE(dim_elasticity[elasticity], dim_elasticity[product_key], dim_product[product_key], dim_elasticity[channel_key], dim_channel[channel_key])
+			        RETURN [Units Sold] * POWER(1 + x, e)
+			    )
+			RETURN IF(ISBLANK(x), BLANK(), DIVIDE(SimUnits, [Units Sold]) - 1)
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 8 Price simulator
+		lineageTag: 43d9e75c-488e-47f2-b4e6-6462c7cf40ec
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Sim Net Sales' =
+			
+			VAR x = COALESCE(SELECTEDVALUE(dim_price_scenario[scenario_pct]), 0)
+			VAR Combos = SUMMARIZE(fact_sales, dim_product[product_key], dim_channel[channel_key])
+			RETURN
+			    SUMX(
+			        Combos,
+			        VAR e = LOOKUPVALUE(dim_elasticity[elasticity], dim_elasticity[product_key], dim_product[product_key], dim_elasticity[channel_key], dim_channel[channel_key])
+			        RETURN [Net Sales] * (1 + x) * POWER(1 + x, e)
+			    )
+		formatString: #,0.00
+		displayFolder: 8 Price simulator
+		lineageTag: d84d26c2-c640-4587-93a1-7dd9c29197c1
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Sim Gross Margin' =
+			
+			VAR x = COALESCE(SELECTEDVALUE(dim_price_scenario[scenario_pct]), 0)
+			VAR Combos = SUMMARIZE(fact_sales, dim_product[product_key], dim_channel[channel_key])
+			RETURN
+			    SUMX(
+			        Combos,
+			        VAR e = LOOKUPVALUE(dim_elasticity[elasticity], dim_elasticity[product_key], dim_product[product_key], dim_elasticity[channel_key], dim_channel[channel_key])
+			        VAR f = POWER(1 + x, e)
+			        RETURN [Net Sales] * (1 + x) * f - [Cost of Sales] * f
+			    )
+		formatString: #,0.00
+		displayFolder: 8 Price simulator
+		lineageTag: 512479dc-b30d-4387-b3e5-02cd845f1387
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Sim Margin Change' = ROUND([Sim Gross Margin] - [Gross Margin], 2)
+		formatString: #,0.00
+		displayFolder: 8 Price simulator
+		lineageTag: e1622f7d-f9fb-44b7-b2a5-9429aea01d61
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
 	column week_key
 		dataType: int64
 		isHidden

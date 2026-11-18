@@ -2404,3 +2404,124 @@ print("\nBottom 5 by margin:\n", srt[cols].tail(5).round(2).to_string(index=Fals
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# Read-only: shape of the price what-if curve by channel, before designing the simulator page.
+# Applies a price change x to all products, volume reacts with the constant elasticity of each
+# product x channel, terms stay a % of gross, unit cost is unchanged. Nothing is saved.
+import numpy as np
+import pandas as pd
+
+s = spark.table("fact_sales").toPandas()
+c = spark.table("dim_customer").toPandas()[["customer_key", "channel_key"]]
+p = spark.table("dim_product").toPandas()[["product_key", "category", "ownership"]]
+e = spark.table("sim_param_elasticity").toPandas()
+
+d = (s.merge(c, on="customer_key").merge(p, on="product_key")
+      .merge(e, on=["category", "ownership", "channel_key"], how="left"))
+print("rows without elasticity:", int(d["elasticity"].isna().sum()))
+
+g = (d.groupby(["channel_key", "product_key", "elasticity"], as_index=False)
+       .agg(units=("units", "sum"), net=("net_sales", "sum"), cogs=("cogs", "sum")))
+g["margin"] = g["net"] - g["cogs"]
+
+print("\nMean elasticity by channel:")
+print(g.groupby("channel_key")["elasticity"].mean().round(2).to_string())
+print("\nBase margin % of net by channel:")
+base = g.groupby("channel_key")[["net", "margin"]].sum()
+print((base["margin"] / base["net"] * 100).round(1).to_string())
+
+steps = [-0.10, -0.075, -0.05, -0.025, 0.0, 0.025, 0.05, 0.075, 0.10]
+margin_chg, units_chg = {}, {}
+for x in steps:
+    f = (1 + x) ** g["elasticity"]                  # volume factor
+    net_new = g["net"] * (1 + x) * f                 # price up, volume reacts, terms % unchanged
+    margin_new = net_new - g["cogs"] * f             # unit cost unchanged, so cogs follows volume
+    tmp = g[["channel_key", "units", "margin"]].copy()
+    tmp["margin_new"] = margin_new
+    tmp["units_new"] = g["units"] * f
+    t = tmp.groupby("channel_key")[["margin", "margin_new", "units", "units_new"]].sum()
+    margin_chg[x] = (t["margin_new"] / t["margin"] - 1) * 100
+    units_chg[x] = (t["units_new"] / t["units"] - 1) * 100
+
+print("\nMargin change % by channel (rows = channel, columns = price change):")
+print(pd.DataFrame(margin_chg).round(1).to_string())
+print("\nUnits change % by channel:")
+print(pd.DataFrame(units_chg).round(1).to_string())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Create two small helper tables for the price simulator:
+# dim_elasticity (elasticity per product x channel, taken from the simulation parameters) and
+# dim_price_step (price changes from -10% to +10% in 1% steps, used as the X axis of the curve).
+import numpy as np
+import pandas as pd
+
+prod = spark.table("dim_product").toPandas()[["product_key", "category", "ownership"]]
+chan = spark.table("dim_channel").toPandas()[["channel_key"]]
+eps = spark.table("sim_param_elasticity").toPandas()
+
+el = prod.merge(chan, how="cross").merge(eps, on=["category", "ownership", "channel_key"], how="left")
+el = el[["product_key", "channel_key", "elasticity"]].sort_values(["product_key", "channel_key"]).reset_index(drop=True)
+print("dim_elasticity rows:", len(el), "| without elasticity:", int(el["elasticity"].isna().sum()))
+
+pct = np.arange(-10, 11)
+steps = pd.DataFrame({
+    "step_order": np.arange(1, len(pct) + 1),
+    "price_change_pct": (pct / 100).round(2),
+    "price_change_label": ["0%" if v == 0 else f"{v:+d}%" for v in pct],
+})
+
+for name, pdf in {"dim_elasticity": el, "dim_price_step": steps}.items():
+    (spark.createDataFrame(pdf)
+          .write.mode("overwrite")
+          .option("overwriteSchema", "true")
+          .format("delta")
+          .saveAsTable(name))
+
+print("dim_price_step rows:", spark.table("dim_price_step").count())
+spark.table("dim_price_step").show(5)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Create dim_price_scenario: the same price changes as dim_price_step (-10% to +10%, 1% steps),
+# but as a separate table so a slicer on it picks one scenario without filtering the curves.
+import numpy as np
+import pandas as pd
+
+pct = np.arange(-10, 11)
+scen = pd.DataFrame({
+    "scenario_order": np.arange(1, len(pct) + 1),
+    "scenario_pct": (pct / 100).round(2),
+    "scenario_label": ["0%" if v == 0 else f"{v:+d}%" for v in pct],
+})
+
+(spark.createDataFrame(scen)
+      .write.mode("overwrite")
+      .option("overwriteSchema", "true")
+      .format("delta")
+      .saveAsTable("dim_price_scenario"))
+
+print("dim_price_scenario rows:", spark.table("dim_price_scenario").count())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

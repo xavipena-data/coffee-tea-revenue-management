@@ -1,0 +1,49 @@
+table dim_price_step
+	lineageTag: c608300a-5f84-4f71-b471-5b089ce38b44
+	sourceLineageTag: [dbo].[dim_price_step]
+
+	column step_order
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 8771f992-7dda-4eb0-adba-1665715a554b
+		sourceLineageTag: step_order
+		summarizeBy: sum
+		sourceColumn: step_order
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column price_change_pct
+		dataType: double
+		formatString: 0%;-0%;0%
+		lineageTag: 11bfc66c-63b9-4595-98ce-4ea2550b555d
+		sourceLineageTag: price_change_pct
+		summarizeBy: none
+		sourceColumn: price_change_pct
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column price_change_label
+		dataType: string
+		lineageTag: a3bce4fa-407c-4b50-9428-8b571cea914b
+		sourceLineageTag: price_change_label
+		summarizeBy: none
+		sourceColumn: price_change_label
+		sortByColumn: step_order
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_price_step = entity
+		mode: directLake
+		source
+			entityName: dim_price_step
+			expressionSource: 'DirectLake - lh_rm'
+
