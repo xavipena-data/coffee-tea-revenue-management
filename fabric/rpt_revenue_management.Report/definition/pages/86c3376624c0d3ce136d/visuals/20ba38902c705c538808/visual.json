@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 112,
-    "z": 3007,
+    "z": 10000,
     "height": 74,
     "width": 256,
-    "tabOrder": 3006
+    "tabOrder": 9000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -140,23 +140,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "254c19fd242d268ab9e4",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "PVM Prior Margin"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

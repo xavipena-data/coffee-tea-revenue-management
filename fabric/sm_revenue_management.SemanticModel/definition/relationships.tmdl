@@ -52,3 +52,18 @@ relationship 7b925b07-f566-7024-9ac8-eb47263beaee
 	fromColumn: fact_customer_terms.customer_key
 	toColumn: dim_customer.customer_key
 
+relationship 52a5db5e-695f-1fc8-0973-39ccf2029d72
+	relyOnReferentialIntegrity
+	fromColumn: fact_promo_performance.channel_key
+	toColumn: dim_channel.channel_key
+
+relationship 0ee7aef2-4eb1-e27a-a76f-67c8e6a09a60
+	relyOnReferentialIntegrity
+	fromColumn: fact_promo_performance.product_key
+	toColumn: dim_product.product_key
+
+relationship 04b52a02-7c85-27a9-da0f-acb8206b2034
+	relyOnReferentialIntegrity
+	fromColumn: fact_promo_performance.start_week_key
+	toColumn: dim_date.week_key
+

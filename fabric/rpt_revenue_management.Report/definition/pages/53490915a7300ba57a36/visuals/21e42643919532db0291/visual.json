@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 460,
-    "z": 16,
+    "z": 16000,
     "height": 244,
     "width": 1060,
-    "tabOrder": 15
+    "tabOrder": 15000
   },
   "visual": {
     "visualType": "lineChart",
@@ -162,37 +162,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "bcf926d20c0b0240b94c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_month"
-              }
-            },
-            "Property": "year_month"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "0ea9fb4188a6a8bd0a4b",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Net to Gross %"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

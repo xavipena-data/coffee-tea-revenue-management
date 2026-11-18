@@ -58,5 +58,6 @@
     "useEnhancedTooltips": true,
     "useDefaultAggregateDisplayName": true,
     "locale": "es-ES"
-  }
+  },
+  "linguisticSchemaSyncVersion": 0
 }

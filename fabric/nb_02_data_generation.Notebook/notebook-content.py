@@ -844,11 +844,16 @@ saved.merge(cust[["customer_key", "channel_key"]], on="customer_key") \
 
 # ---------------------------------------------------------------
 # fact_promotion: one row per promotion event (SKU x channel x weeks).
-# 240 events: Retail 144, Online 60, Office & Vending 24, Horeca 12.
-# Online follows a fixed calendar, the same dates for all three Online accounts:
-#   Black Friday (week of Black Friday + Cyber Monday week): 8 events per year
-#   January Sales (3 weeks from the first week on/after Jan 7): 6 per year
-#   Summer Sales (3 weeks from the first week on/after Jul 1): 6 per year
+# 240 events: Online 90, Horeca 60, Office & Vending 60, Retail 30.
+# Promotion rules (margin-aware):
+#   - Only SKU x channel pairs with unit margin >= 20% of gross are promoted.
+#   - The discount never exceeds 50% of that unit margin.
+# Unit margin % of gross = (1 - channel terms %) - unit cost / list price,
+# estimated from fact_price_list, fact_cost, fact_customer_terms and the assortment.
+# Online follows a fixed calendar, the same dates for all Online accounts:
+#   Black Friday (week of Black Friday + Cyber Monday week): 12 events per year
+#   January Sales (3 weeks from the first week on/after Jan 7): 9 per year
+#   Summer Sales (3 weeks from the first week on/after Jul 1): 9 per year
 # The other channels get random dates between weeks 5 and 150, 2 to 4 weeks long.
 # A SKU never has two events in the same channel closer than 3 weeks (the
 # post-promotion dip needs room). Half of the events add visibility support.
@@ -862,11 +867,41 @@ import pandas as pd
 SEED = 42
 rng_promo = np.random.default_rng(SEED + 4)
 
+MIN_MARGIN = 0.20     # minimum unit margin (share of gross) to be promoted
+CAP_SHARE = 0.50      # maximum discount as a share of the unit margin
+
 dim_date = spark.table("dim_date").toPandas()
 dim_date["week_start"] = pd.to_datetime(dim_date["week_start"])
 week_of = dict(zip(dim_date["week_start"], dim_date["week_key"]))
 year_of_week = dict(zip(dim_date["week_key"], dim_date["year"]))
-product_keys = spark.table("dim_product").toPandas()["product_key"].to_numpy()
+
+# --- Unit margin (% of gross) per product x channel, from upstream tables ---
+cust = spark.table("dim_customer").toPandas()[["customer_key", "channel_key"]]
+assort = spark.table("sim_customer_assortment").toPandas().merge(cust, on="customer_key")
+pairs = assort[["product_key", "channel_key"]].drop_duplicates()
+price = (spark.table("fact_price_list").toPandas()
+         .groupby(["product_key", "channel_key"], as_index=False)["list_price"].mean())
+cost = (spark.table("fact_cost").toPandas()
+        .groupby("product_key", as_index=False)["unit_cost"].mean())
+terms = spark.table("fact_customer_terms").toPandas().merge(cust, on="customer_key")
+scale = 100.0 if terms["total_terms_pct"].max() > 1 else 1.0
+terms_ch = terms.groupby("channel_key", as_index=False)["total_terms_pct"].mean()
+terms_ch["terms"] = terms_ch["total_terms_pct"] / scale
+mg = (pairs.merge(price, on=["product_key", "channel_key"])
+           .merge(cost, on="product_key")
+           .merge(terms_ch[["channel_key", "terms"]], on="channel_key"))
+mg["margin_pct"] = (1 - mg["terms"]) - mg["unit_cost"] / mg["list_price"]
+margin_of = {(int(r.product_key), int(r.channel_key)): float(r.margin_pct) for r in mg.itertuples()}
+
+def allowed_depths(pk, ch, depths):
+    """Depths that do not exceed CAP_SHARE of the unit margin of this SKU x channel."""
+    cap = CAP_SHARE * margin_of.get((int(pk), int(ch)), -1.0)
+    return [d for d in depths if d <= cap + 1e-9]
+
+def eligible(ch, depths):
+    """SKUs sellable in the channel with enough margin and at least one allowed depth."""
+    return sorted(pk for (pk, c), m_ in margin_of.items()
+                  if c == ch and m_ >= MIN_MARGIN and allowed_depths(pk, c, depths))
 
 DEPTHS_OTHER = [0.10, 0.15, 0.20, 0.25, 0.30]
 MECHANICS = ["Price only", "Price + visibility support"]
@@ -888,29 +923,36 @@ for year in (2023, 2024, 2025):
     nov = pd.date_range(f"{year}-11-01", f"{year}-11-30")
     thanksgiving = nov[nov.weekday == 3][3]                       # 4th Thursday of November
     windows = [
-        ("Black Friday",  week_of[thanksgiving - pd.Timedelta(days=3)], 2, 8, [0.15, 0.20, 0.25, 0.30]),
-        ("January Sales", first_week_on_or_after(pd.Timestamp(f"{year}-01-07")), 3, 6, [0.10, 0.15, 0.20, 0.25]),
-        ("Summer Sales",  first_week_on_or_after(pd.Timestamp(f"{year}-07-01")), 3, 6, [0.10, 0.15, 0.20, 0.25]),
+        ("Black Friday",  week_of[thanksgiving - pd.Timedelta(days=3)], 2, 12, [0.15, 0.20, 0.25, 0.30]),
+        ("January Sales", first_week_on_or_after(pd.Timestamp(f"{year}-01-07")), 3, 9, [0.10, 0.15, 0.20, 0.25]),
+        ("Summer Sales",  first_week_on_or_after(pd.Timestamp(f"{year}-07-01")), 3, 9, [0.10, 0.15, 0.20, 0.25]),
     ]
     for campaign, first_week, n_weeks, n_events, depths in windows:
-        for pk in rng_promo.choice(product_keys, size=n_events, replace=False):
+        pool = np.array(eligible(4, depths))
+        for pk in rng_promo.choice(pool, size=n_events, replace=False):
             duration = int(rng_promo.integers(1, 3))              # 1 or 2 weeks
             start = first_week + int(rng_promo.integers(0, n_weeks - duration + 1))
-            add_event(campaign, 4, pk, start, duration, rng_promo.choice(depths))
+            depth = rng_promo.choice(allowed_depths(pk, 4, depths))
+            add_event(campaign, 4, pk, start, duration, depth)
 
 # --- Other channels: random dates, no overlap per SKU and channel ---
 busy = {}
-for channel_key, n_events in {2: 144, 3: 24, 1: 12}.items():
-    made = 0
+for channel_key, n_events in {2: 30, 3: 60, 1: 60}.items():
+    pool = np.array(eligible(channel_key, DEPTHS_OTHER))
+    made, tries = 0, 0
     while made < n_events:
-        pk = int(rng_promo.choice(product_keys))
+        tries += 1
+        if tries > 20000:
+            raise RuntimeError(f"Cannot place {n_events} events in channel {channel_key}")
+        pk = int(rng_promo.choice(pool))
         duration = int(rng_promo.integers(2, 5))                  # 2 to 4 weeks
         start = int(rng_promo.integers(5, 152 - duration))
         end = start + duration - 1
         if any(start <= e + 3 and s <= end + 3 for s, e in busy.get((pk, channel_key), [])):
             continue
         busy.setdefault((pk, channel_key), []).append((start, end))
-        add_event("Regular", channel_key, pk, start, duration, rng_promo.choice(DEPTHS_OTHER))
+        depth = rng_promo.choice(allowed_depths(pk, channel_key, DEPTHS_OTHER))
+        add_event("Regular", channel_key, pk, start, duration, depth)
         made += 1
 
 promo = pd.DataFrame(events).sort_values(["start_week_key", "channel_key", "product_key"]).reset_index(drop=True)
@@ -925,7 +967,6 @@ promo["discount_pct"] = promo["discount_pct"].round(2)
 
 saved = spark.table("fact_promotion").toPandas()
 print("fact_promotion", len(saved), "| nulls:", int(saved.isna().sum().sum()))
-print(saved.groupby("channel_key").size().to_string())
 
 overlaps = 0
 for _, g in saved.groupby(["product_key", "channel_key"]):
@@ -933,9 +974,33 @@ for _, g in saved.groupby(["product_key", "channel_key"]):
     overlaps += int((g["start_week_key"].to_numpy()[1:] <= g["end_week_key"].to_numpy()[:-1] + 3).sum())
 print("overlaps (including the 3-week gap):", overlaps, "| last end week:", int(saved["end_week_key"].max()))
 
+# Rule checks: margin of the promoted pairs and discount versus margin
+saved["margin_pct"] = [margin_of[(int(p), int(c))] for p, c in zip(saved["product_key"], saved["channel_key"])]
+print("min margin among promoted pairs:", round(saved["margin_pct"].min(), 4))
+print("events with discount > cap x margin:", int((saved["discount_pct"] > CAP_SHARE * saved["margin_pct"] + 1e-9).sum()))
+print(saved.groupby("channel_key").agg(events=("promotion_id", "size"),
+                                       products=("product_key", "nunique"),
+                                       avg_margin=("margin_pct", "mean"),
+                                       avg_discount=("discount_pct", "mean")).round(3).to_string())
+
 online = saved[saved["channel_key"] == 4].copy()
 online["year"] = online["start_week_key"].map(year_of_week)
 online.pivot_table(index="campaign", columns="year", values="promotion_id", aggfunc="count")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Read-only: list every table in the Lakehouse with its columns and row count.
+# Used to find which tables hold list price, commercial terms and unit cost.
+for t in sorted(spark.catalog.listTables(), key=lambda x: x.name):
+    df = spark.table(t.name)
+    print(f"{t.name} ({df.count()} rows): {', '.join(df.columns)}")
 
 # METADATA ********************
 
@@ -1079,9 +1144,10 @@ print(season.groupby("channel_key")["seasonal_index"].agg(["mean", "min", "max"]
 #   x seasonal index x trend x (list price / initial list price)^elasticity
 #   x promotion effect, and units are drawn from a Poisson distribution.
 # Promotion effect: during the event the volume is multiplied by
-#   (1 - discount)^elasticity, times 1.20 if the event has visibility support.
+#   1 + PROMO_RESPONSE x ((1 - discount)^elasticity x 1.20 if visibility support - 1).
+# PROMO_RESPONSE = 4 makes promotions react about 4 times more than an ordinary price cut.
 # In the 3 weeks after the event, 30% of the incremental volume is taken back
-# (post-promotion dip), spread evenly over the 3 weeks.
+# (post-promotion dip), spread evenly over the 3 weeks, never below 30% of base demand.
 # Customers only buy between start_week_key and end_week_key, and only the SKUs
 # in their assortment. Weeks with 0 units do not create a row.
 # Money columns: terms and promotion discount are % of gross sales (units x list
@@ -1099,6 +1165,7 @@ rng_sales = np.random.default_rng(SEED + 6)
 BASE_UNITS = {"Small": 3, "Medium": 8, "Large": 20}
 TREND, SIGMA_CUST, SIGMA_SKU = 0.02, 0.25, 0.35
 VIS_UPLIFT, DIP_SHARE, DIP_WEEKS, SUPPORT_COST = 1.20, 0.30, 3, 0.03
+PROMO_RESPONSE = 4.0   # promo volume response vs an ordinary price change (1.0 = same as list price change)
 
 cust = spark.table("dim_customer").toPandas()[["customer_key", "channel_key", "tier", "start_week_key", "end_week_key"]]
 cust = cust.sort_values("customer_key").reset_index(drop=True)
@@ -1141,7 +1208,7 @@ grid = grid.merge(season, on=["channel_key", "month"], how="left")
 # Promotion effect per (channel, SKU, week): uplift during the event, dip after it
 pe = promos.merge(prod[["product_key", "category", "ownership"]], on="product_key") \
            .merge(eps, on=["category", "ownership", "channel_key"])
-pe["uplift"] = (1 - pe["discount_pct"]) ** pe["elasticity"] * np.where(pe["mechanic"] == "Price + visibility support", VIS_UPLIFT, 1.0)
+pe["uplift"] = 1 + PROMO_RESPONSE * ((1 - pe["discount_pct"]) ** pe["elasticity"] * np.where(pe["mechanic"] == "Price + visibility support", VIS_UPLIFT, 1.0) - 1)
 
 in_promo = pe.loc[pe.index.repeat(pe["duration_weeks"])].copy()
 in_promo["week_key"] = in_promo["start_week_key"] + in_promo.groupby("promotion_id").cumcount()
@@ -1152,6 +1219,8 @@ dip = pe.loc[pe.index.repeat(DIP_WEEKS)].copy()
 dip["week_key"] = dip["end_week_key"] + 1 + dip.groupby("promotion_id").cumcount()
 dip["promo_mult"] = (1 - DIP_SHARE * (dip["uplift"] - 1) * dip["duration_weeks"] / DIP_WEEKS).clip(lower=0.3)
 dip = dip[dip["week_key"] <= 156][["channel_key", "product_key", "week_key", "promo_mult"]]
+print("promo uplift: mean", round(float(pe["uplift"].mean() - 1), 3), "| max", round(float(pe["uplift"].max() - 1), 3),
+      "| dip weeks floored at 0.3:", round(float((dip["promo_mult"] <= 0.3 + 1e-9).mean() * 100), 1), "%")
 dip["promotion_id"], dip["discount_pct"], dip["mechanic"] = np.nan, 0.0, None
 
 promo_effect = pd.concat([in_promo, dip], ignore_index=True)
@@ -1615,6 +1684,661 @@ steps = pd.DataFrame({
       .saveAsTable("dim_pvm_step"))
 
 spark.table("dim_pvm_step").orderBy("step_order").show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16a: read-only check - schemas and sample rows of the tables needed to build fact_promo_performance
+for t in ["fact_promotion", "sim_param_elasticity", "dim_product", "dim_customer", "dim_channel"]:
+    print("=====", t, "=====")
+    df = spark.table(t)
+    df.printSchema()
+    df.show(3, truncate=False)
+
+print("===== week range =====")
+spark.sql("SELECT MIN(week_key) AS min_week, MAX(week_key) AS max_week FROM dim_date").show()
+
+print("===== events starting in the first 4 weeks =====")
+spark.sql("SELECT COUNT(*) AS events_without_full_baseline FROM fact_promotion WHERE start_week_key <= 4").show()
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16b: estimate for each promotion event the baseline (4 weeks before, excluding promo and post-promo dip weeks), the uplift during the promo and the shortfall in the 3 weeks after
+import numpy as np
+import pandas as pd
+from pyspark.sql import functions as F
+
+N_WEEKS, BASE_WEEKS, DIP_WEEKS = 156, 4, 3
+
+# Weekly units and margin per channel x product (all customers of the channel together)
+weekly = (spark.table("fact_sales")
+          .join(spark.table("dim_customer").select("customer_key", "channel_key"), "customer_key")
+          .groupBy("channel_key", "product_key", "week_key")
+          .agg(F.sum("units").alias("units"),
+               F.sum(F.col("net_sales") - F.col("cogs")).alias("margin"))
+          .toPandas())
+events = spark.table("fact_promotion").toPandas()
+
+# One array per channel x product that has events, indexed by week_key (position 0 unused); weeks without sales stay at zero
+keys = {(int(c), int(p)) for c, p in events[["channel_key", "product_key"]].to_numpy()}
+units = {k: np.zeros(N_WEEKS + 2) for k in keys}
+margin = {k: np.zeros(N_WEEKS + 2) for k in keys}
+is_promo = {k: np.zeros(N_WEEKS + 2, dtype=bool) for k in keys}
+is_dip = {k: np.zeros(N_WEEKS + 2, dtype=bool) for k in keys}
+
+for r in weekly.itertuples(index=False):
+    k = (int(r.channel_key), int(r.product_key))
+    if k in units:
+        units[k][int(r.week_key)] = float(r.units)
+        margin[k][int(r.week_key)] = float(r.margin)
+
+# Mark promo weeks and the DIP_WEEKS weeks after each event
+for e in events.itertuples(index=False):
+    k = (int(e.channel_key), int(e.product_key))
+    s, t = int(e.start_week_key), int(e.end_week_key)
+    is_promo[k][s:t + 1] = True
+    is_dip[k][t + 1:min(t + DIP_WEEKS, N_WEEKS) + 1] = True
+
+rows = []
+for e in events.itertuples(index=False):
+    k = (int(e.channel_key), int(e.product_key))
+    s, t = int(e.start_week_key), int(e.end_week_key)
+    duration = t - s + 1
+    # Baseline weeks: the BASE_WEEKS before the start, skipping promo and dip weeks of any event of this channel x product
+    window = [w for w in range(max(1, s - BASE_WEEKS), s) if not is_promo[k][w] and not is_dip[k][w]]
+    post = list(range(t + 1, min(t + DIP_WEEKS, N_WEEKS) + 1))
+    promo_units = units[k][s:t + 1].sum()
+    post_units = units[k][post].sum() if post else 0.0
+    if window:
+        base_pw = units[k][window].mean()
+        base_u = units[k][window].sum()
+        base_mpu = margin[k][window].sum() / base_u if base_u > 0 else np.nan
+    else:
+        base_pw, base_mpu = np.nan, np.nan
+    base_in_promo = base_pw * duration
+    rows.append({
+        "promotion_id": int(e.promotion_id),
+        "baseline_weeks_used": len(window),
+        "base_units_per_week": base_pw,
+        "base_margin_per_unit": base_mpu,
+        "promo_units": promo_units,
+        "base_units_in_promo": base_in_promo,
+        "incremental_units": promo_units - base_in_promo,
+        "uplift_pct": (promo_units / base_in_promo - 1) if base_in_promo and base_in_promo > 0 else np.nan,
+        "post_weeks": len(post),
+        "post_units": post_units,
+        "dip_units": (base_pw * len(post) - post_units) if window else np.nan,
+    })
+
+perf = pd.DataFrame(rows)
+
+print("events:", len(perf))
+print("events with at least 1 baseline week and base > 0:", int(perf["uplift_pct"].notna().sum()))
+print("events with fewer than 4 baseline weeks:", int((perf["baseline_weeks_used"] < BASE_WEEKS).sum()))
+print("\nuplift_pct summary (all events with baseline):")
+print(perf["uplift_pct"].describe().round(4))
+ok = perf.dropna(subset=["uplift_pct"])
+print("\ntotal incremental units:", round(ok["incremental_units"].sum(), 1),
+      "| total dip units:", round(ok["dip_units"].sum(), 1))
+perf.head(5)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16c: add actual promo money (margin, support cost) and the return calculation to the per-event baseline results, then save fact_promo_performance
+import numpy as np
+import pandas as pd
+from pyspark.sql import functions as F
+
+# Actual money during the promo weeks: all fact_sales rows tagged with each promotion_id
+promo_money = (spark.table("fact_sales")
+               .filter(F.col("promotion_id").isNotNull())
+               .groupBy("promotion_id")
+               .agg(F.sum("units").alias("promo_units_sales"),
+                    F.sum("gross_sales").alias("promo_gross_sales"),
+                    F.sum("promo_discount").alias("promo_discount"),
+                    F.sum("net_sales").alias("promo_net_sales"),
+                    F.sum("cogs").alias("promo_cogs"),
+                    F.sum("promo_support_cost").alias("promo_support_cost"))
+               .toPandas())
+promo_money["promotion_id"] = promo_money["promotion_id"].astype(int)
+
+events = spark.table("fact_promotion").toPandas()
+df = (events.merge(perf, on="promotion_id", how="left")
+            .merge(promo_money, on="promotion_id", how="left"))
+
+# Consistency check: units tagged in fact_sales must equal the channel x product units of the promo weeks used in 16b
+print("max difference in promo units:", float((df["promo_units"] - df["promo_units_sales"]).abs().max()))
+
+# Return calculation (money columns stay empty when the event has no baseline)
+df["has_baseline"] = df["uplift_pct"].notna()
+df["promo_margin"] = df["promo_net_sales"] - df["promo_cogs"]
+df["baseline_margin_in_promo"] = df["base_units_in_promo"] * df["base_margin_per_unit"]
+df["incremental_margin"] = df["promo_margin"] - df["baseline_margin_in_promo"]
+df["dip_margin_loss"] = df["dip_units"] * df["base_margin_per_unit"]
+df["net_incremental_margin"] = df["incremental_margin"] - df["promo_support_cost"] - df["dip_margin_loss"]
+df["promo_investment"] = df["promo_discount"] + df["promo_support_cost"]
+df["roi"] = np.where(df["promo_investment"] > 0, df["net_incremental_margin"] / df["promo_investment"], np.nan)
+
+cols = ["promotion_id", "campaign", "channel_key", "product_key", "mechanic", "discount_pct",
+        "start_week_key", "end_week_key", "duration_weeks", "has_baseline", "baseline_weeks_used",
+        "base_units_per_week", "base_margin_per_unit", "promo_units", "base_units_in_promo",
+        "incremental_units", "uplift_pct", "post_weeks", "post_units", "dip_units",
+        "promo_gross_sales", "promo_discount", "promo_net_sales", "promo_cogs", "promo_support_cost",
+        "promo_margin", "baseline_margin_in_promo", "incremental_margin", "dip_margin_loss",
+        "net_incremental_margin", "promo_investment", "roi"]
+out = df[cols].copy()
+money = ["promo_gross_sales", "promo_discount", "promo_net_sales", "promo_cogs", "promo_support_cost",
+         "promo_margin", "baseline_margin_in_promo", "incremental_margin", "dip_margin_loss",
+         "net_incremental_margin", "promo_investment"]
+out[money] = out[money].round(2)
+
+# Save: NaN values become real nulls so the semantic model sees them as blank
+sdf = spark.createDataFrame(out)
+for c, t in sdf.dtypes:
+    if t == "double":
+        sdf = sdf.withColumn(c, F.when(F.isnan(F.col(c)), F.lit(None)).otherwise(F.col(c)))
+sdf.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("fact_promo_performance")
+
+ok = out[out["has_baseline"]]
+print("rows saved:", len(out), "| events analysed:", len(ok))
+print("total promo discount:", round(ok["promo_discount"].sum(), 2),
+      "| support cost:", round(ok["promo_support_cost"].sum(), 2))
+print("total net incremental margin:", round(ok["net_incremental_margin"].sum(), 2))
+print("events with negative net incremental margin:", int((ok["net_incremental_margin"] < 0).sum()), "of", len(ok))
+print(ok.groupby("campaign")[["incremental_units", "promo_discount", "net_incremental_margin"]].sum().round(2))
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16d: save sim_promo_truth with the true uplift of each event (same formula as the sales
+# generation, including PROMO_RESPONSE) and print the estimated-vs-true uplift comparison.
+import warnings
+warnings.filterwarnings("ignore")
+import numpy as np
+import pandas as pd
+
+PROMO_RESPONSE = 4.0   # must match the value used in the sales generation cell
+
+perf_saved = spark.table("fact_promo_performance").toPandas()
+prod = spark.table("dim_product").select("product_key", "category", "ownership").toPandas()
+elas = spark.table("sim_param_elasticity").toPandas()
+
+d = (perf_saved.merge(prod, on="product_key", how="left")
+               .merge(elas, on=["category", "ownership", "channel_key"], how="left"))
+base_effect = (1 - d["discount_pct"]) ** d["elasticity"] * np.where(d["mechanic"].str.contains("visibility"), 1.20, 1.0)
+d["true_uplift_pct"] = PROMO_RESPONSE * (base_effect - 1)
+
+# Save the truth for all events (also those without baseline), used later to validate the estimates
+(spark.createDataFrame(d[["promotion_id", "true_uplift_pct"]])
+      .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+      .saveAsTable("sim_promo_truth"))
+print("sim_promo_truth saved:", spark.table("sim_promo_truth").count(), "rows")
+
+ok = d[d["has_baseline"]].copy()
+ok["all_events"] = "all"
+ok["true_units"] = ok["base_units_in_promo"] * (1 + ok["true_uplift_pct"])
+ok["error_pts"] = (ok["uplift_pct"] - ok["true_uplift_pct"]) * 100
+
+def table(by):
+    # Uplift weighted by baseline volume: estimated (from sales) vs true (from the simulation parameters)
+    g = ok.groupby(by).agg(events=("promotion_id", "count"), promo_units=("promo_units", "sum"),
+                           base=("base_units_in_promo", "sum"), true_units=("true_units", "sum"))
+    g["est_uplift_%"] = ((g["promo_units"] / g["base"] - 1) * 100).round(2)
+    g["true_uplift_%"] = ((g["true_units"] / g["base"] - 1) * 100).round(2)
+    return g[["events", "est_uplift_%", "true_uplift_%"]]
+
+report = "\n".join([
+    "All events:", table("all_events").to_string(),
+    "\nBy campaign:", table("campaign").to_string(),
+    "\nBy channel_key:", table("channel_key").to_string(),
+    "\ncorrelation per event: " + str(round(ok[["uplift_pct", "true_uplift_pct"]].corr().iloc[0, 1], 3)),
+    "error per event (pts): mean " + str(round(ok["error_pts"].mean(), 2)) + " | median " + str(round(ok["error_pts"].median(), 2)),
+    "dip units / incremental units: " + str(round(ok["dip_units"].sum() / ok["incremental_units"].sum(), 3)) + " (simulated: 0,30)",
+])
+print(report)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16f: add the two columns that split the incremental margin (margin on extra units and discount given away on baseline units) and check they close with net_incremental_margin
+from pyspark.sql import functions as F
+
+df = (spark.table("fact_promo_performance")
+           .drop("margin_on_extra_units", "discount_on_base_units"))      # drop first so the cell can be re-run
+
+promo_margin_per_unit = F.col("promo_margin") / F.col("promo_units")
+df = (df.withColumn("margin_on_extra_units", F.round(F.col("incremental_units") * promo_margin_per_unit, 2))
+        .withColumn("discount_on_base_units",
+                    F.round(F.col("base_units_in_promo") * (F.col("base_margin_per_unit") - promo_margin_per_unit), 2)))
+
+df = df.cache()
+print("rows:", df.count())
+df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("fact_promo_performance")
+
+chk = (spark.table("fact_promo_performance").filter("has_baseline")
+       .withColumn("gap", F.col("margin_on_extra_units") - F.col("discount_on_base_units")
+                          - F.col("promo_support_cost") - F.col("dip_margin_loss") - F.col("net_incremental_margin")))
+chk.agg(F.round(F.max(F.abs(F.col("gap"))), 2).alias("max_abs_gap_per_event"),
+        F.round(F.sum("margin_on_extra_units"), 2).alias("margin_on_extra_units"),
+        F.round(F.sum("discount_on_base_units"), 2).alias("discount_on_base_units"),
+        F.round(F.sum("promo_support_cost"), 2).alias("promo_support_cost"),
+        F.round(F.sum("dip_margin_loss"), 2).alias("dip_margin_loss"),
+        F.round(F.sum("net_incremental_margin"), 2).alias("net_incremental_margin")).show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 16g: helper table with one row per step of the promotion economics waterfall; no relationships, ordered by step_order
+import pandas as pd
+
+steps = pd.DataFrame({
+    "step_order": [1, 2, 3, 4],
+    "step": ["Margin on extra units", "Discount on baseline units", "Promo support cost", "Post-promo dip"]
+})
+
+(spark.createDataFrame(steps)
+      .write.format("delta").mode("overwrite")
+      .option("overwriteSchema", "true")
+      .saveAsTable("dim_promo_step"))
+
+spark.table("dim_promo_step").orderBy("step_order").show(truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Cell 16h (read-only): what-if grid on promo events.
+# Re-computes net incremental margin per event under alternative promo response (k)
+# and discount depth (s) multipliers. Nothing is saved to the Lakehouse.
+import pandas as pd
+import numpy as np
+
+perf = spark.table("fact_promo_performance").toPandas()
+truth = spark.table("sim_promo_truth").toPandas()[["promotion_id", "true_uplift_pct"]]
+
+ev = perf[perf["has_baseline"] == True].merge(truth, on="promotion_id", how="left").copy()
+ev = ev[ev["promo_units"] > 0].copy()
+
+# Per-event building blocks
+B = ev["base_units_in_promo"].astype(float)            # units we would have sold anyway during the event
+m = ev["base_margin_per_unit"].astype(float)           # margin per unit at normal conditions
+d_unit = ev["promo_discount"] / ev["promo_units"]      # promo discount per promoted unit
+g_unit = ev["promo_gross_sales"] / ev["promo_units"]   # gross sales per promoted unit
+u_true = ev["true_uplift_pct"].astype(float)           # true uplift used by the simulation
+
+DIP_SHARE = 0.30       # post-promo dip = 30% of incremental units
+SUPPORT_RATE = 0.03    # support cost = 3% of promoted gross sales
+
+def scenario(k, s):
+    """Return per-event net incremental margin and investment for response k and discount scale s."""
+    U = B * (1 + k * u_true)                            # promoted units
+    inc = U - B                                         # incremental units
+    promo_margin = U * (m - d_unit * s - SUPPORT_RATE * g_unit)
+    dip_loss = DIP_SHARE * inc * m
+    net = promo_margin - B * m - dip_loss
+    invest = U * d_unit * s + SUPPORT_RATE * U * g_unit
+    return net, invest
+
+# Calibration: k=1, s=1 should resemble the real result
+net0, inv0 = scenario(1.0, 1.0)
+print("CALIBRATION (model k=1, s=1 vs real)")
+print(f"  events: {len(ev)}")
+print(f"  model: profitable {(net0 > 0).sum()} | sum net {net0.sum():,.0f} | ROI {net0.sum() / inv0.sum():.2%}")
+print(f"  real : profitable {(ev['net_incremental_margin'] > 0).sum()} | sum net {ev['net_incremental_margin'].sum():,.0f} | ROI {ev['roi'].mul(ev['promo_investment']).sum() / ev['promo_investment'].sum():.2%}")
+
+# Grid
+ks = [1.0, 1.5, 2.0, 3.0]
+ss = [1.0, 0.75, 0.5]
+rows = []
+for k in ks:
+    for s in ss:
+        net, inv = scenario(k, s)
+        rows.append({"k": k, "s": s,
+                     "pct_profitable": round((net > 0).mean() * 100, 2),
+                     "sum_net_margin": round(net.sum(), 2),
+                     "roi_pct": round(net.sum() / inv.sum() * 100, 2)})
+grid = pd.DataFrame(rows)
+
+print("\n% of events profitable")
+print(grid.pivot(index="k", columns="s", values="pct_profitable").to_string())
+print("\nROI % on promo spend")
+print(grid.pivot(index="k", columns="s", values="roi_pct").to_string())
+print("\nAverage discount per event (info)")
+print(f"  mean discount as % of gross per unit: {(d_unit / g_unit).mean():.2%}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Cell 16j (read-only): extended what-if. Adds higher response (k up to 5),
+# and a margin-aware cap on discount depth (discount <= cap x unit margin).
+# Nothing is saved to the Lakehouse.
+import pandas as pd
+import numpy as np
+
+perf = spark.table("fact_promo_performance").toPandas()
+truth = spark.table("sim_promo_truth").toPandas()[["promotion_id", "true_uplift_pct"]]
+
+ev = perf[perf["has_baseline"] == True].merge(truth, on="promotion_id", how="left").copy()
+ev = ev[ev["promo_units"] > 0].copy()
+
+B = ev["base_units_in_promo"].astype(float)
+m = ev["base_margin_per_unit"].astype(float)
+d_unit = ev["promo_discount"] / ev["promo_units"]
+g_unit = ev["promo_gross_sales"] / ev["promo_units"]
+u_true = ev["true_uplift_pct"].astype(float)
+
+DIP_SHARE = 0.30
+SUPPORT_RATE = 0.03
+
+def scenario(k, s_vec):
+    """Net incremental margin and investment; s_vec is a per-event discount scale."""
+    d = d_unit * s_vec
+    U = B * (1 + k * u_true)
+    inc = U - B
+    promo_margin = U * (m - d - SUPPORT_RATE * g_unit)
+    dip_loss = DIP_SHARE * inc * m
+    net = promo_margin - B * m - dip_loss
+    invest = U * d + SUPPORT_RATE * U * g_unit
+    return net, invest
+
+# 1) How big is the discount relative to the unit margin?
+ratio = (d_unit / m).replace([np.inf, -np.inf], np.nan)
+print("DISCOUNT / UNIT MARGIN (per event)")
+print(ratio.describe(percentiles=[.1, .25, .5, .75, .9]).round(2).to_string())
+print(f"\nunit margin as % of gross (mean): {(m / g_unit).mean():.2%}")
+print(f"events with discount >= unit margin: {(ratio >= 1).sum()} of {len(ratio)}")
+
+# 2) By channel
+tmp = ev[["channel_key"]].copy()
+tmp["ratio"] = ratio.values
+net3, _ = scenario(3.0, np.ones(len(ev)))
+tmp["profitable_k3"] = (net3.values > 0)
+print("\nBY CHANNEL (k=3, s=1)")
+print(tmp.groupby("channel_key").agg(events=("ratio", "size"),
+                                     mean_ratio=("ratio", "mean"),
+                                     pct_profitable=("profitable_k3", "mean")).round(3).to_string())
+
+# 3) Extended grid with margin-aware cap: s = min(1, cap * m / d_unit)
+ks = [2.0, 3.0, 4.0, 5.0]
+caps = [None, 0.75, 0.5, 0.35]
+rows = []
+for k in ks:
+    for cap in caps:
+        s_vec = np.ones(len(ev)) if cap is None else np.minimum(1.0, cap * m / d_unit).clip(lower=0).values
+        net, inv = scenario(k, s_vec)
+        rows.append({"k": k, "cap": "none" if cap is None else cap,
+                     "pct_profitable": round((net > 0).mean() * 100, 2),
+                     "roi_pct": round(net.sum() / inv.sum() * 100, 2)})
+grid = pd.DataFrame(rows)
+print("\n% of events profitable (cap = max discount as share of unit margin)")
+print(grid.pivot(index="k", columns="cap", values="pct_profitable").to_string())
+print("\nROI % on promo spend")
+print(grid.pivot(index="k", columns="cap", values="roi_pct").to_string())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Cell 16k (read-only): what-if restricted to events whose unit margin is high enough.
+# Simulates a "promote only products with enough margin" rule using the existing events.
+# Nothing is saved to the Lakehouse.
+import pandas as pd
+import numpy as np
+
+perf = spark.table("fact_promo_performance").toPandas()
+truth = spark.table("sim_promo_truth").toPandas()[["promotion_id", "true_uplift_pct"]]
+
+ev = perf[perf["has_baseline"] == True].merge(truth, on="promotion_id", how="left").copy()
+ev = ev[ev["promo_units"] > 0].copy()
+
+B = ev["base_units_in_promo"].astype(float)
+m = ev["base_margin_per_unit"].astype(float)
+d_unit = ev["promo_discount"] / ev["promo_units"]
+g_unit = ev["promo_gross_sales"] / ev["promo_units"]
+u_true = ev["true_uplift_pct"].astype(float)
+margin_pct = m / g_unit          # unit margin as share of gross
+
+DIP_SHARE = 0.30
+SUPPORT_RATE = 0.03
+
+def scenario(k, s_vec, mask):
+    d = d_unit * s_vec
+    U = B * (1 + k * u_true)
+    inc = U - B
+    promo_margin = U * (m - d - SUPPORT_RATE * g_unit)
+    net = promo_margin - B * m - DIP_SHARE * inc * m
+    invest = U * d + SUPPORT_RATE * U * g_unit
+    return net[mask], invest[mask]
+
+# 1) How many events have each margin level
+print("EVENTS BY UNIT MARGIN (% of gross)")
+bins = [-np.inf, 0, 0.05, 0.10, 0.20, 0.30, np.inf]
+labels = ["<=0", "0-5%", "5-10%", "10-20%", "20-30%", ">30%"]
+print(pd.cut(margin_pct, bins=bins, labels=labels).value_counts().reindex(labels).to_string())
+
+# 2) Eligible subsets: minimum unit margin % required to promote
+rows = []
+for t in [0.0, 0.10, 0.20, 0.30]:
+    mask = (margin_pct >= t).values
+    for k in [2.0, 3.0, 4.0]:
+        for cap in [None, 0.5]:
+            s_vec = np.ones(len(ev)) if cap is None else np.minimum(1.0, cap * m / d_unit).clip(lower=0).values
+            net, inv = scenario(k, s_vec, mask)
+            avg_disc_pct = ((d_unit * s_vec / g_unit)[mask]).mean() * 100
+            rows.append({"min_margin": t, "k": k, "cap": "none" if cap is None else cap,
+                         "events": int(mask.sum()),
+                         "pct_profitable": round((net > 0).mean() * 100, 2),
+                         "roi_pct": round(net.sum() / inv.sum() * 100, 2),
+                         "avg_discount_pct": round(avg_disc_pct, 2)})
+res = pd.DataFrame(rows)
+print("\nRESULTS (min_margin = minimum unit margin as share of gross to be promoted)")
+print(res.to_string(index=False))
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Read-only: estimate unit margin (% of gross) per product x channel from upstream tables
+# (price list, unit cost, customer terms, assortment) and validate it against the
+# margin observed in the existing promotion events. Nothing is saved.
+import numpy as np
+import pandas as pd
+
+prod = spark.table("dim_product").toPandas()
+cust = spark.table("dim_customer").toPandas()[["customer_key", "channel_key"]]
+
+# Product x channel pairs that are actually sold (via the customer assortment)
+assort = spark.table("sim_customer_assortment").toPandas().merge(cust, on="customer_key")
+pairs = assort[["product_key", "channel_key"]].drop_duplicates()
+
+# Average list price per product x channel, average unit cost per product
+price = (spark.table("fact_price_list").toPandas()
+         .groupby(["product_key", "channel_key"], as_index=False)["list_price"].mean())
+cost = (spark.table("fact_cost").toPandas()
+        .groupby("product_key", as_index=False)["unit_cost"].mean())
+
+# Average total terms per channel (as a fraction of gross)
+terms = spark.table("fact_customer_terms").toPandas().merge(cust, on="customer_key")
+scale = 100.0 if terms["total_terms_pct"].max() > 1 else 1.0
+terms_ch = terms.groupby("channel_key", as_index=False)["total_terms_pct"].mean()
+terms_ch["terms"] = terms_ch["total_terms_pct"] / scale
+
+m = (pairs.merge(price, on=["product_key", "channel_key"])
+          .merge(cost, on="product_key")
+          .merge(terms_ch[["channel_key", "terms"]], on="channel_key"))
+m["margin_pct"] = (1 - m["terms"]) - m["unit_cost"] / m["list_price"]
+
+# 1) Validation against the margin observed in the existing events
+perf = spark.table("fact_promo_performance").toPandas()
+perf = perf[(perf["has_baseline"] == True) & (perf["promo_units"] > 0)].copy()
+perf["obs_margin_pct"] = perf["base_margin_per_unit"] / (perf["promo_gross_sales"] / perf["promo_units"])
+chk = perf.merge(m[["product_key", "channel_key", "margin_pct"]], on=["product_key", "channel_key"], how="left")
+print("VALIDATION (events with a computed margin):", int(chk["margin_pct"].notna().sum()), "of", len(chk))
+print("  correlation observed vs computed:", round(chk[["obs_margin_pct", "margin_pct"]].corr().iloc[0, 1], 3))
+print("  mean abs difference (points of gross):", round((chk["obs_margin_pct"] - chk["margin_pct"]).abs().mean() * 100, 2))
+
+# 2) Eligibility by channel
+print("\nELIGIBILITY BY CHANNEL (margin >= 20% of gross)")
+rows = []
+for ch, g in m.groupby("channel_key"):
+    rows.append({"channel_key": ch,
+                 "pairs_sold": len(g),
+                 "mean_margin_pct": round(g["margin_pct"].mean() * 100, 2),
+                 "eligible_20": int((g["margin_pct"] >= 0.20).sum()),
+                 "eligible_30": int((g["margin_pct"] >= 0.30).sum()),
+                 "margin_le_0": int((g["margin_pct"] <= 0).sum())})
+print(pd.DataFrame(rows).to_string(index=False))
+print("\nEvents needed per channel today: Retail(2) 144, Online(4) 60 (8+6+6 per year, no repeat in a window), O&V(3) 24, Horeca(1) 12")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Read-only sanity checks on the regenerated fact_sales: keys, nulls, activity windows,
+# assortment, arithmetic identities and a few ratios by year, channel and ownership.
+# Nothing is saved.
+import numpy as np
+import pandas as pd
+
+s = spark.table("fact_sales").toPandas()
+cust = spark.table("dim_customer").toPandas()[["customer_key", "channel_key", "start_week_key", "end_week_key"]]
+prod = spark.table("dim_product").toPandas()[["product_key", "ownership"]]
+dd = spark.table("dim_date").toPandas()[["week_key", "year"]]
+assort = spark.table("sim_customer_assortment").toPandas()
+promo = spark.table("fact_promotion").toPandas()
+
+print("rows:", len(s), "| nulls outside promotion_id:", int(s.drop(columns="promotion_id").isna().sum().sum()))
+print("orphan customers:", int((~s["customer_key"].isin(cust["customer_key"])).sum()),
+      "| products:", int((~s["product_key"].isin(prod["product_key"])).sum()),
+      "| weeks:", int((~s["week_key"].isin(dd["week_key"])).sum()),
+      "| promotion_id:", int((~s["promotion_id"].dropna().isin(promo["promotion_id"])).sum()))
+
+x = s.merge(cust, on="customer_key")
+print("rows outside customer active weeks:",
+      int(((x["week_key"] < x["start_week_key"]) | (x["week_key"] > x["end_week_key"])).sum()))
+a = s[["customer_key", "product_key"]].drop_duplicates().merge(
+    assort.assign(ok=1), how="left", on=["customer_key", "product_key"])
+print("customer x SKU pairs outside assortment:", int(a["ok"].isna().sum()))
+print("units <= 0:", int((s["units"] <= 0).sum()))
+
+# Arithmetic identities
+disc_cols = ["promo_discount", "on_invoice_discount", "rappel", "early_payment_discount", "marketing_contribution"]
+net_calc = s["gross_sales"] - s[disc_cols].sum(axis=1)
+print("max |units x list_price - gross_sales|:", round(float((s["units"] * s["list_price"] - s["gross_sales"]).abs().max()), 3),
+      "| max |gross - discounts - net_sales|:", round(float((net_calc - s["net_sales"]).abs().max()), 3))
+
+# Ratios by year, channel and ownership
+s = (s.merge(dd, on="week_key")
+      .merge(cust[["customer_key", "channel_key"]], on="customer_key")
+      .merge(prod, on="product_key"))
+s["terms"] = s[["on_invoice_discount", "rappel", "early_payment_discount", "marketing_contribution"]].sum(axis=1)
+
+def ratios(df, by):
+    g = df.groupby(by).agg(gross=("gross_sales", "sum"), promo=("promo_discount", "sum"),
+                           terms=("terms", "sum"), net=("net_sales", "sum"), cogs=("cogs", "sum"))
+    g["promo_pct_gross"] = (g["promo"] / g["gross"] * 100).round(2)
+    g["terms_pct_gross"] = (g["terms"] / g["gross"] * 100).round(2)
+    g["margin_pct_gross"] = ((g["net"] - g["cogs"]) / g["gross"] * 100).round(2)
+    return g[["promo_pct_gross", "terms_pct_gross", "margin_pct_gross"]]
+
+for by in ["year", "channel_key", "ownership"]:
+    print("\nby", by)
+    print(ratios(s, by).to_string())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Add base_margin_pct to fact_promo_performance: unit margin before the promotion as a share
+# of gross price per unit (base_margin_per_unit / promo gross sales per promoted unit).
+# Used as the X axis of the promotions scatter. Null when the event has no baseline.
+from pyspark.sql import functions as F
+
+df = spark.table("fact_promo_performance").drop("base_margin_pct")      # drop first so the cell can be re-run
+
+gross_per_unit = F.col("promo_gross_sales") / F.col("promo_units")
+df = df.withColumn("base_margin_pct",
+                   F.when(F.col("has_baseline") & (F.col("promo_units") > 0),
+                          F.round(F.col("base_margin_per_unit") / gross_per_unit, 4)))
+
+df = df.cache()
+print("rows:", df.count())
+df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("fact_promo_performance")
+
+chk = spark.table("fact_promo_performance").filter("has_baseline")
+chk.agg(F.count("base_margin_pct").alias("events_with_value"),
+        F.round(F.min("base_margin_pct"), 4).alias("min"),
+        F.round(F.avg("base_margin_pct"), 4).alias("mean"),
+        F.round(F.max("base_margin_pct"), 4).alias("max")).show()
 
 # METADATA ********************
 

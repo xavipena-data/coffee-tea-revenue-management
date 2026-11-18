@@ -4,10 +4,10 @@
   "position": {
     "x": 1008,
     "y": 112,
-    "z": 3010,
+    "z": 13000,
     "height": 74,
     "width": 256,
-    "tabOrder": 3009
+    "tabOrder": 12000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -140,23 +140,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "3bd8e6128de76ee81810",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "PVM Margin Change %"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

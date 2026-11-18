@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 198,
-    "z": 14,
+    "z": 14000,
     "height": 250,
     "width": 640,
-    "tabOrder": 13
+    "tabOrder": 13000
   },
   "visual": {
     "visualType": "waterfallChart",
@@ -213,37 +213,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "6848dc3f0054708e5e80",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_waterfall_step"
-              }
-            },
-            "Property": "step"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "955cbb34606b515b6eed",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Waterfall Value"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

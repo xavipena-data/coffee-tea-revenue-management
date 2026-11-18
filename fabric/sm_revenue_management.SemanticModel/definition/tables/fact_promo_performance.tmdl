@@ -1,0 +1,397 @@
+table fact_promo_performance
+	lineageTag: 545ffe6e-cbbc-4704-ac49-4bb7eaac8427
+	sourceLineageTag: [dbo].[fact_promo_performance]
+
+	column promotion_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b6df9c3b-5d7e-4618-85d1-6806ee8a8453
+		sourceLineageTag: promotion_id
+		summarizeBy: sum
+		sourceColumn: promotion_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column campaign
+		dataType: string
+		lineageTag: 1a5302f5-e0fc-449a-b002-18490056e0c1
+		sourceLineageTag: campaign
+		summarizeBy: none
+		sourceColumn: campaign
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9bb09e92-5226-4cee-9bf8-54420f70b28d
+		sourceLineageTag: channel_key
+		summarizeBy: none
+		sourceColumn: channel_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 397b888c-1b09-4fb1-aaca-123b0bfb3591
+		sourceLineageTag: product_key
+		summarizeBy: none
+		sourceColumn: product_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column mechanic
+		dataType: string
+		lineageTag: 337b4fd2-9cbe-4f27-8626-c8c385d46cf3
+		sourceLineageTag: mechanic
+		summarizeBy: none
+		sourceColumn: mechanic
+
+		annotation SummarizationSetBy = Automatic
+
+	column discount_pct
+		dataType: double
+		lineageTag: 7d795f7d-c092-4663-96c4-227ba7371838
+		sourceLineageTag: discount_pct
+		summarizeBy: sum
+		sourceColumn: discount_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column start_week_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: d7fdf685-2ada-4c40-b4bd-430909435d52
+		sourceLineageTag: start_week_key
+		summarizeBy: none
+		sourceColumn: start_week_key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_week_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 5ff32396-3c90-4217-89a6-8d9b73e49e35
+		sourceLineageTag: end_week_key
+		summarizeBy: sum
+		sourceColumn: end_week_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column duration_weeks
+		dataType: int64
+		formatString: 0
+		lineageTag: 234f8a2d-b4f9-40da-8cf0-009e35b8e0f7
+		sourceLineageTag: duration_weeks
+		summarizeBy: sum
+		sourceColumn: duration_weeks
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_baseline
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b1568582-6250-4226-9e3f-3ff7aaef5c4b
+		sourceLineageTag: has_baseline
+		summarizeBy: none
+		sourceColumn: has_baseline
+
+		annotation SummarizationSetBy = Automatic
+
+	column baseline_weeks_used
+		dataType: int64
+		formatString: 0
+		lineageTag: 5cb2a387-a709-49f0-babf-5a10cdfdb008
+		sourceLineageTag: baseline_weeks_used
+		summarizeBy: sum
+		sourceColumn: baseline_weeks_used
+
+		annotation SummarizationSetBy = Automatic
+
+	column base_units_per_week
+		dataType: double
+		lineageTag: e72c2287-1410-46ed-8629-9ec47992bdac
+		sourceLineageTag: base_units_per_week
+		summarizeBy: sum
+		sourceColumn: base_units_per_week
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column base_margin_per_unit
+		dataType: double
+		lineageTag: 98f05c4e-dd7a-427a-aad6-1fa05aad104d
+		sourceLineageTag: base_margin_per_unit
+		summarizeBy: sum
+		sourceColumn: base_margin_per_unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_units
+		dataType: double
+		lineageTag: 9f1905f1-b630-40bc-a2a3-2661dbcd2cad
+		sourceLineageTag: promo_units
+		summarizeBy: sum
+		sourceColumn: promo_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column base_units_in_promo
+		dataType: double
+		lineageTag: 8eb67bc7-2d7b-4caf-836b-ec4efca7cfef
+		sourceLineageTag: base_units_in_promo
+		summarizeBy: sum
+		sourceColumn: base_units_in_promo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column incremental_units
+		dataType: double
+		lineageTag: 0e9eb027-df64-404c-9cbd-5026523b7763
+		sourceLineageTag: incremental_units
+		summarizeBy: sum
+		sourceColumn: incremental_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column uplift_pct
+		dataType: double
+		lineageTag: ead57f56-8e44-492f-a21d-11aeda7edc68
+		sourceLineageTag: uplift_pct
+		summarizeBy: sum
+		sourceColumn: uplift_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column post_weeks
+		dataType: int64
+		formatString: 0
+		lineageTag: 531c48c7-e407-4941-99f4-71674124b243
+		sourceLineageTag: post_weeks
+		summarizeBy: sum
+		sourceColumn: post_weeks
+
+		annotation SummarizationSetBy = Automatic
+
+	column post_units
+		dataType: double
+		lineageTag: 065decf3-b515-44e7-a89a-db82934a90b6
+		sourceLineageTag: post_units
+		summarizeBy: sum
+		sourceColumn: post_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column dip_units
+		dataType: double
+		lineageTag: 3802fe63-f409-4f62-aa55-ebc3df46caf5
+		sourceLineageTag: dip_units
+		summarizeBy: sum
+		sourceColumn: dip_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_gross_sales
+		dataType: double
+		lineageTag: 28f5a094-2c3c-4dad-bfc9-071885ed288e
+		sourceLineageTag: promo_gross_sales
+		summarizeBy: sum
+		sourceColumn: promo_gross_sales
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_discount
+		dataType: double
+		lineageTag: 07b8d258-5093-4ff5-bc02-26603cd8d94c
+		sourceLineageTag: promo_discount
+		summarizeBy: sum
+		sourceColumn: promo_discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_net_sales
+		dataType: double
+		lineageTag: d511e830-156d-4b8b-95a3-d67ccbeac557
+		sourceLineageTag: promo_net_sales
+		summarizeBy: sum
+		sourceColumn: promo_net_sales
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_cogs
+		dataType: double
+		lineageTag: e5b07172-a0de-4b56-af4f-5a67f7814529
+		sourceLineageTag: promo_cogs
+		summarizeBy: sum
+		sourceColumn: promo_cogs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_support_cost
+		dataType: double
+		lineageTag: f7682a69-96fe-4661-ad26-a0f2afb180ee
+		sourceLineageTag: promo_support_cost
+		summarizeBy: sum
+		sourceColumn: promo_support_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_margin
+		dataType: double
+		lineageTag: 09519e8c-c957-463e-991e-88bea308e6b5
+		sourceLineageTag: promo_margin
+		summarizeBy: sum
+		sourceColumn: promo_margin
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column baseline_margin_in_promo
+		dataType: double
+		lineageTag: 4fe17c77-95c2-4361-bc63-72879bdfc571
+		sourceLineageTag: baseline_margin_in_promo
+		summarizeBy: sum
+		sourceColumn: baseline_margin_in_promo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column incremental_margin
+		dataType: double
+		lineageTag: 285f21fb-1d3a-450f-af42-12d8c0ca5f51
+		sourceLineageTag: incremental_margin
+		summarizeBy: sum
+		sourceColumn: incremental_margin
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column dip_margin_loss
+		dataType: double
+		lineageTag: 9e33323b-2841-4807-9885-f22810ca7ae5
+		sourceLineageTag: dip_margin_loss
+		summarizeBy: sum
+		sourceColumn: dip_margin_loss
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column net_incremental_margin
+		dataType: double
+		lineageTag: cebea6e6-5a09-4d0a-9caa-676a3328d66b
+		sourceLineageTag: net_incremental_margin
+		summarizeBy: sum
+		sourceColumn: net_incremental_margin
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column promo_investment
+		dataType: double
+		lineageTag: aa0b5003-358e-4099-aaf8-6e736691c6ae
+		sourceLineageTag: promo_investment
+		summarizeBy: sum
+		sourceColumn: promo_investment
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column roi
+		dataType: double
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: a045705a-35cf-4c7f-94a7-efc265e290d1
+		sourceLineageTag: roi
+		summarizeBy: average
+		sourceColumn: roi
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column margin_on_extra_units
+		dataType: double
+		lineageTag: 096f6744-2184-4845-ac96-648760f520b6
+		sourceLineageTag: margin_on_extra_units
+		summarizeBy: sum
+		sourceColumn: margin_on_extra_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column discount_on_base_units
+		dataType: double
+		lineageTag: 45db3d9b-0bb0-4de1-9994-8cf33983b6c7
+		sourceLineageTag: discount_on_base_units
+		summarizeBy: sum
+		sourceColumn: discount_on_base_units
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column base_margin_pct
+		dataType: double
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 19f17d0d-f81e-40d9-808f-542d4c85a293
+		sourceLineageTag: base_margin_pct
+		summarizeBy: average
+		sourceColumn: base_margin_pct
+
+		changedProperty = FormatString
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	partition fact_promo_performance = entity
+		mode: directLake
+		source
+			entityName: fact_promo_performance
+			expressionSource: 'DirectLake - lh_rm'
+

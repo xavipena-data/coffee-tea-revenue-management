@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 198,
-    "z": 3011,
+    "z": 14000,
     "height": 370,
     "width": 1060,
-    "tabOrder": 3010
+    "tabOrder": 13000
   },
   "visual": {
     "visualType": "waterfallChart",
@@ -252,7 +252,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "92eb3911dc05a2d792de",
+        "name": "8c423867c01e0150011c",
         "field": {
           "Column": {
             "Expression": {
@@ -266,7 +266,7 @@
         "type": "Categorical"
       },
       {
-        "name": "5f263880a408cc96b8e4",
+        "name": "bab468481738120151bd",
         "field": {
           "Measure": {
             "Expression": {

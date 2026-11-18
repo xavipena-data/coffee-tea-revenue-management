@@ -390,6 +390,91 @@ table fact_sales
 
 		changedProperty = FormatString
 
+	measure 'Promo Events' =
+			
+			CALCULATE ( COUNTROWS ( fact_promo_performance ), fact_promo_performance[has_baseline] = TRUE () )
+		formatString: 0
+		displayFolder: 7 Promotions
+		lineageTag: 8f3b2693-b592-442f-8120-078f065ad765
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+	measure 'Promo Uplift %' =
+			
+			VAR PromoUnits = CALCULATE ( SUM ( fact_promo_performance[promo_units] ), fact_promo_performance[has_baseline] = TRUE () )
+			VAR BaseUnits  = CALCULATE ( SUM ( fact_promo_performance[base_units_in_promo] ), fact_promo_performance[has_baseline] = TRUE () )
+			RETURN
+			    IF ( BaseUnits > 0, DIVIDE ( PromoUnits, BaseUnits ) - 1 )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 7 Promotions
+		lineageTag: c17e3a22-fea2-431a-8fe1-2246d843913a
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Promo Net Incremental Margin' =
+			
+			CALCULATE ( SUM ( fact_promo_performance[net_incremental_margin] ), fact_promo_performance[has_baseline] = TRUE () )
+		formatString: #,0.00
+		displayFolder: 7 Promotions
+		lineageTag: e1e36a16-0053-4d64-987b-78530a91bc09
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Promo Investment' =
+			
+			CALCULATE ( SUM ( fact_promo_performance[promo_investment] ), fact_promo_performance[has_baseline] = TRUE () )
+		formatString: #,0.00
+		displayFolder: 7 Promotions
+		lineageTag: 8f9e01ca-9108-4c34-81db-f3a6137d102a
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Promo ROI %' =
+			
+			DIVIDE ( [Promo Net Incremental Margin], [Promo Investment] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 7 Promotions
+		lineageTag: 81cefd94-5350-4942-83e5-ff5b52006508
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
+	measure 'Promo Waterfall Value' =
+			
+			SWITCH (
+			    SELECTEDVALUE ( dim_promo_step[step_order] ),
+			    1,   CALCULATE ( SUM ( fact_promo_performance[margin_on_extra_units] ),  fact_promo_performance[has_baseline] = TRUE () ),
+			    2, - CALCULATE ( SUM ( fact_promo_performance[discount_on_base_units] ), fact_promo_performance[has_baseline] = TRUE () ),
+			    3, - CALCULATE ( SUM ( fact_promo_performance[promo_support_cost] ),     fact_promo_performance[has_baseline] = TRUE () ),
+			    4, - CALCULATE ( SUM ( fact_promo_performance[dip_margin_loss] ),        fact_promo_performance[has_baseline] = TRUE () )
+			)
+		formatString: #,0.00
+		displayFolder: 7 Promotions
+		lineageTag: 9455ea01-fb77-4ca2-945c-c4ad1ca389b0
+
+		changedProperty = Name
+
+		changedProperty = DisplayFolder
+
+		changedProperty = FormatString
+
 	column week_key
 		dataType: int64
 		isHidden

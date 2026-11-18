@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 54,
-    "z": 6,
+    "z": 6000,
     "height": 50,
     "width": 256,
-    "tabOrder": 5
+    "tabOrder": 5000
   },
   "visual": {
     "visualType": "slicer",
@@ -110,24 +110,11 @@
         }
       ]
     },
+    "syncGroup": {
+      "groupName": "year",
+      "fieldChanges": true,
+      "filterChanges": true
+    },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "352a6f00bdabbd018339",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_date"
-              }
-            },
-            "Property": "year"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

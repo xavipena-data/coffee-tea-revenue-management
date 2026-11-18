@@ -4,10 +4,10 @@
   "position": {
     "x": 856,
     "y": 198,
-    "z": 15,
+    "z": 15000,
     "height": 250,
     "width": 408,
-    "tabOrder": 14
+    "tabOrder": 14000
   },
   "visual": {
     "visualType": "clusteredBarChart",
@@ -189,37 +189,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "70b10c5fc6e11c6cdb00",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_channel"
-              }
-            },
-            "Property": "channel"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "010c23730765d0b8434d",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Total Discounts %"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

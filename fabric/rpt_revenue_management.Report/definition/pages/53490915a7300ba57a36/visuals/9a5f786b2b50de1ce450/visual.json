@@ -4,10 +4,10 @@
   "position": {
     "x": 740,
     "y": 112,
-    "z": 12,
+    "z": 12000,
     "height": 74,
     "width": 256,
-    "tabOrder": 11
+    "tabOrder": 11000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -140,23 +140,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "0a750b0d89b784d63d51",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Total Discounts %"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }
