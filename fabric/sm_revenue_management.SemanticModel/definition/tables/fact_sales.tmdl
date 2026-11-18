@@ -475,6 +475,28 @@ table fact_sales
 
 		changedProperty = FormatString
 
+	measure 'Terms % of Gross' = DIVIDE([Total Discounts] - [Promo Discount], [Gross Sales])
+		formatString: #,0.00%;-#,0.00%;#,0.00%
+		displayFolder: 2 Gross to net
+		lineageTag: 6628f234-3109-4a8e-814a-33a2d570b973
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
+	measure 'Active Customers' = DISTINCTCOUNT(fact_sales[customer_key])
+		formatString: #,0
+		displayFolder: 2 Gross to net
+		lineageTag: 18706f95-9f2c-492a-98ce-c7e03843b366
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		changedProperty = DisplayFolder
+
 	column week_key
 		dataType: int64
 		isHidden

@@ -248,37 +248,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "8c423867c01e0150011c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_pvm_step"
-              }
-            },
-            "Property": "step"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "bab468481738120151bd",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "PVM Value"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

@@ -4,10 +4,10 @@
   "position": {
     "x": 740,
     "y": 112,
-    "z": 7008,
+    "z": 15000,
     "height": 74,
     "width": 256,
-    "tabOrder": 7008
+    "tabOrder": 15000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -140,23 +140,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "ea1029a4c76027449063",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Promo Net Incremental Margin"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

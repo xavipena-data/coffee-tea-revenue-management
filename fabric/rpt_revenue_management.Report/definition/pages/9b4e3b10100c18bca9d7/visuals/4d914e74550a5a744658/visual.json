@@ -4,10 +4,10 @@
   "position": {
     "x": 856,
     "y": 198,
-    "z": 7011,
+    "z": 18000,
     "height": 250,
     "width": 408,
-    "tabOrder": 7011
+    "tabOrder": 18000
   },
   "visual": {
     "visualType": "clusteredBarChart",
@@ -329,37 +329,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "04fb50610d24009612a0",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_promo_step"
-              }
-            },
-            "Property": "step"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "0468a289a173023b4abe",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Promo Waterfall Value"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

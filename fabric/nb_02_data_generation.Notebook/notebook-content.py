@@ -2346,3 +2346,61 @@ chk.agg(F.count("base_margin_pct").alias("events_with_value"),
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# Read-only: customer-level profitability profile (all years together) to decide how to design
+# the customer page. Shows distribution of margin and terms by channel, tier and customer type,
+# the weight of negative-margin customers and how concentrated the margin is. Nothing is saved.
+import numpy as np
+import pandas as pd
+
+s = spark.table("fact_sales").toPandas()
+c = spark.table("dim_customer").toPandas()[["customer_key", "customer_name", "channel_key", "customer_type", "tier"]]
+
+s["terms"] = s[["on_invoice_discount", "rappel", "early_payment_discount", "marketing_contribution"]].sum(axis=1)
+g = (s.groupby("customer_key")
+      .agg(gross=("gross_sales", "sum"), terms=("terms", "sum"), net=("net_sales", "sum"), cogs=("cogs", "sum"))
+      .reset_index())
+g["margin"] = g["net"] - g["cogs"]
+g["margin_pct_gross"] = g["margin"] / g["gross"] * 100
+g["terms_pct_gross"] = g["terms"] / g["gross"] * 100
+g = g.merge(c, on="customer_key")
+
+print("customers with sales:", len(g), "| with negative margin:", int((g["margin"] < 0).sum()),
+      "| their margin (EUR):", round(g.loc[g["margin"] < 0, "margin"].sum(), 2),
+      "| total margin (EUR):", round(g["margin"].sum(), 2))
+
+def profile(by):
+    out = g.groupby(by).agg(customers=("customer_key", "size"),
+                            negative=("margin", lambda x: int((x < 0).sum())),
+                            margin_p10=("margin_pct_gross", lambda x: round(x.quantile(.10), 1)),
+                            margin_median=("margin_pct_gross", lambda x: round(x.median(), 1)),
+                            margin_p90=("margin_pct_gross", lambda x: round(x.quantile(.90), 1)),
+                            terms_median=("terms_pct_gross", lambda x: round(x.median(), 1)),
+                            net_total=("net", lambda x: round(x.sum() / 1e6, 2)))
+    return out
+
+for by in ["channel_key", "tier", "customer_type"]:
+    print("\nby", by)
+    print(profile(by).to_string())
+
+print("\ncorrelation terms % vs margin %:", round(g[["terms_pct_gross", "margin_pct_gross"]].corr().iloc[0, 1], 3))
+
+# Concentration of margin (whale curve numbers)
+srt = g.sort_values("margin", ascending=False).reset_index(drop=True)
+cum = srt["margin"].cumsum() / srt["margin"].sum() * 100
+for p in (10, 20, 50):
+    n = int(round(len(srt) * p / 100))
+    print(f"top {p}% of customers ({n}) = {cum.iloc[n - 1]:.1f}% of total margin")
+
+cols = ["customer_name", "channel_key", "tier", "net", "margin", "margin_pct_gross", "terms_pct_gross"]
+print("\nTop 5 by margin:\n", srt[cols].head(5).round(2).to_string(index=False))
+print("\nBottom 5 by margin:\n", srt[cols].tail(5).round(2).to_string(index=False))
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

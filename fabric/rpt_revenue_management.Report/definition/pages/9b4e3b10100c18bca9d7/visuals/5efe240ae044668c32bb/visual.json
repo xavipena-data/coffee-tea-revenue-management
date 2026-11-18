@@ -4,10 +4,10 @@
   "position": {
     "x": 472,
     "y": 112,
-    "z": 7007,
+    "z": 14000,
     "height": 74,
     "width": 256,
-    "tabOrder": 7007
+    "tabOrder": 14000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -140,23 +140,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "3f88ca0ede148a1cc876",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "fact_sales"
-              }
-            },
-            "Property": "Promo Uplift %"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

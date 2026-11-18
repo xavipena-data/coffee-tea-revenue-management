@@ -4,10 +4,10 @@
   "position": {
     "x": 204,
     "y": 198,
-    "z": 7010,
+    "z": 17000,
     "height": 506,
     "width": 640,
-    "tabOrder": 7010
+    "tabOrder": 17000
   },
   "visual": {
     "visualType": "scatterChart",
@@ -412,7 +412,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "b854aeb2a4585d4db384",
+        "name": "f05d3b86c0e8424a4ec0",
         "field": {
           "Column": {
             "Expression": {
@@ -426,7 +426,21 @@
         "type": "Advanced"
       },
       {
-        "name": "a3e8b7e07d57256c2371",
+        "name": "dd682226ed6029e06c4c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "dim_channel"
+              }
+            },
+            "Property": "channel"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "5782608083caaa680086",
         "field": {
           "Aggregation": {
             "Expression": {
@@ -445,7 +459,7 @@
         "type": "Advanced"
       },
       {
-        "name": "214f88e5232ce1e4005b",
+        "name": "b1d4ce3fba2027c7b647",
         "field": {
           "Aggregation": {
             "Expression": {
@@ -462,20 +476,6 @@
           }
         },
         "type": "Advanced"
-      },
-      {
-        "name": "86586d5d7db918c6c57c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "dim_channel"
-              }
-            },
-            "Property": "channel"
-          }
-        },
-        "type": "Categorical"
       }
     ]
   }

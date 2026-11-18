@@ -4,10 +4,10 @@
   "position": {
     "x": 856,
     "y": 460,
-    "z": 7012,
+    "z": 19000,
     "height": 244,
     "width": 408,
-    "tabOrder": 7012
+    "tabOrder": 19000
   },
   "visual": {
     "visualType": "textbox",
@@ -69,6 +69,21 @@
                 ]
               }
             ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]
